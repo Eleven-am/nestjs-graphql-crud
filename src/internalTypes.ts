@@ -5,7 +5,7 @@
 
 import { Type } from "@nestjs/common";
 import { AppAbilityType, WillAuthorize } from "@eleven-am/authorizer";
-import { Field, ID, InputType } from "@nestjs/graphql";
+import { Field, InputType } from "@nestjs/graphql";
 import { GraphQLResolveInfo } from "graphql";
 
 /**
@@ -509,7 +509,7 @@ export interface IResolverClass<Item, Target, WhereInput> {
  * Input type for subscription filtering by IDs
  */
 @InputType()
-export class UserSubscriptionFilter {
+export class DefaultSubscriptionFilter {
     /** Array of entity IDs to subscribe to */
     @Field(() => [String])
     inIds: string[];

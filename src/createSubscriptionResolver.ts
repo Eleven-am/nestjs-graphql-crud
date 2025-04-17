@@ -3,7 +3,7 @@
  * @description Creates a resolver for GraphQL subscriptions
  */
 
-import { SubscriptionResolver, UserSubscriptionFilter, DataProvider } from "./internalTypes";
+import { SubscriptionResolver, DefaultSubscriptionFilter, DataProvider } from "./internalTypes";
 import { Inject, Injectable, Type } from "@nestjs/common";
 import { firstLetterUppercase } from "./decorators";
 import { ModuleRef } from "@nestjs/core";
@@ -40,11 +40,11 @@ export function createSubscriptionResolver<
         /**
          * Filter subscription events based on the provided filter
          *
-         * @param {UserSubscriptionFilter} filter - The subscription filter
+         * @param {DefaultSubscriptionFilter} filter - The subscription filter
          * @param {EntityType[]} changes - The changed entities
          * @returns {boolean} Whether the changes match the filter
          */
-        filter(filter: UserSubscriptionFilter, changes: EntityType[]): boolean {
+        filter(filter: DefaultSubscriptionFilter, changes: EntityType[]): boolean {
             const items = changes as unknown as { id: string }[];
             return filter.inIds.some((id) => items.some((item) => item.id === id));
         }
@@ -52,11 +52,11 @@ export function createSubscriptionResolver<
         /**
          * Resolve entities for subscription updates
          *
-         * @param {UserSubscriptionFilter} filter - The subscription filter
+         * @param {DefaultSubscriptionFilter} filter - The subscription filter
          * @param {EntityType[]} changes - The changed entities
          * @returns {Promise<EntityType[]>} The resolved entities
          */
-        async resolve(filter: UserSubscriptionFilter, changes: EntityType[]): Promise<EntityType[]> {
+        async resolve(filter: DefaultSubscriptionFilter, changes: EntityType[]): Promise<EntityType[]> {
             // For simple ID-based filtering, we can just return the changes directly
             // since they already contain the full entity data
             return changes;

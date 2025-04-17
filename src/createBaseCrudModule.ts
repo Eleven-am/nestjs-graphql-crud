@@ -3,7 +3,7 @@
  * @description Creates a dynamically generated NestJS module with CRUD operations for a specific model
  */
 
-import { CrudModuleOptions, UserSubscriptionFilter } from "./internalTypes";
+import { CrudModuleOptions, DefaultSubscriptionFilter } from "./internalTypes";
 import { createBaseCrudService } from "./createBaseCrudService";
 import { DynamicModule, Provider } from "@nestjs/common";
 import { createBaseCrudResolver } from "./createBaseCrudResolver";
@@ -44,7 +44,7 @@ export function createBaseCrudModule <
         WhereInput
     >
 ): DynamicModule {
-    const SubscriptionFilter = options.subscriptionResolver?.filter ?? UserSubscriptionFilter;
+    const SubscriptionFilter = options.subscriptionResolver?.filter ?? DefaultSubscriptionFilter;
 
     const serviceToken = Symbol(`${options.modelName}Service`);
     const subscriptionResolversToken = Symbol(`${options.modelName}SubscriptionResolvers`);
