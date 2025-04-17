@@ -3,7 +3,7 @@
  * @description Type definitions for the CRUD module system
  */
 
-import { ModuleMetadata, Type } from "@nestjs/common";
+import { Type } from "@nestjs/common";
 import { AppAbilityType, WillAuthorize } from "@eleven-am/authorizer";
 import { Field, ID, InputType } from "@nestjs/graphql";
 import { GraphQLResolveInfo } from "graphql";

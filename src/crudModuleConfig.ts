@@ -11,6 +11,7 @@ import {
     SubscriptionResolver,
 } from "./internalTypes";
 import { Type } from "@nestjs/common";
+import { WillAuthorize } from "@eleven-am/authorizer";
 
 /**
  * Configuration builder for CRUD modules with a fluent API
@@ -146,6 +147,18 @@ export class CrudModuleConfig<
         resolver: Type<SubscriptionResolver<Item, FilterType>>;
     }): this {
         this.options.subscriptionResolver = config;
+        return this;
+    }
+
+    /**
+     * Adds a custom authorizer to the module
+     *
+     * @template WillAuthorize - The authorizer type
+     *
+     * @param {Type<WillAuthorize>} authorizer - The authorizer class
+     */
+    withAuthorization(authorizer: Type<WillAuthorize>) {
+        this.options.authorizer = authorizer;
         return this;
     }
 }

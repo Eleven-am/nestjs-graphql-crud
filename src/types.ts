@@ -2,7 +2,7 @@
 
 import { Type, DynamicModule } from '@nestjs/common';
 import { GraphQLResolveInfo } from 'graphql';
-import { AppAbilityType } from '@eleven-am/authorizer';
+import {AppAbilityType, WillAuthorize} from '@eleven-am/authorizer';
 import { PrismaClient } from '@prisma/client';
 
 // --- Core Types and Interfaces ---
@@ -360,6 +360,14 @@ export declare class CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateMany
      * @returns The `CrudModuleConfig` instance for chaining.
      */
     withSubscription<FilterType>(config: { filter: Type<FilterType>; resolver: Type<SubscriptionResolver<Item, FilterType>>; }): this;
+
+    /**
+     * Adds a custom authorization logic class to the module.
+     * This class should implement the `WillAuthorize` interface from `@eleven-am/authorizer`.
+     * @param authorizer The class implementing the `WillAuthorize` interface.
+     * @returns The `CrudModuleConfig` instance for chaining.
+     */
+    withAuthorization(authorizer: Type<WillAuthorize>): this;
 }
 
 // --- Module Factory ---
