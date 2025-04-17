@@ -277,8 +277,6 @@ export interface OneToOneRelationInput<Item, Target> {
 export interface CustomRelationInput<Item, Target, WhereInput> {
     /** The name of the field in the GraphQL schema representing this relation. */
     fieldName: string;
-    /** The logical name or identifier of the related model. */
-    targetModel: string;
     /** Optional input type class used for filtering related entities in the GraphQL query. */
     targetWhereInput?: Type<WhereInput>;
     /** The class representing the related entity type. */
@@ -299,8 +297,6 @@ export interface CustomRelationInput<Item, Target, WhereInput> {
 export interface CustomArrayRelationInput<Item, Target, WhereInput> {
     /** The name of the field in the GraphQL schema representing this relation. */
     fieldName: string;
-    /** The logical name or identifier of the related model. */
-    targetModel: string;
     /** Optional input type class used for filtering related entities in the GraphQL query. */
     targetWhereInput?: Type<WhereInput>;
     /** The class representing the *single* related entity type (the resolver must return `Target[]`). */
