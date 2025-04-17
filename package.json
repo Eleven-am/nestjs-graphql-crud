@@ -5,7 +5,7 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "copy": "cp package.json dist && cp README.md dist && cp LICENSE dist && cp src/types.ts dist/index.d.ts",
+    "copy": "cp package.json dist && cp README.md dist && cp LICENSE dist && cp src/types.ts dist/types.ts && cp src/index.d.ts dist/index.d.ts",
     "push": "npm version patch && npm run copy && cd dist && npm publish && cd ..",
     "pipeline": "npm run build && npm run push"
   },
