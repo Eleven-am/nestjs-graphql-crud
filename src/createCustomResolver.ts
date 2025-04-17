@@ -81,7 +81,7 @@ export function createCustomResolver<Item, Target, WhereInput>(
         // Create a resolver without where input parameter if targetWhereInput is not provided
         // @ts-ignore
         @Resolver(() => item)
-            // @ts-ignore
+        // @ts-ignore
         class CustomResolver extends ParentClass<Target> {
             /**
              * Resolver method for a custom relation field without filtering

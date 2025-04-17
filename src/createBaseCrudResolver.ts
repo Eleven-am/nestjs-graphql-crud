@@ -54,6 +54,7 @@ export function createBaseCrudResolver<
         WhereInput
     >
 ): Type {
+    const ModelName = firstLetterUppercase(options.modelName);
     const FindManyContract = createFindMany(options.whereInput, options.modelName);
 
     @Resolver(() => options.entity)
@@ -93,7 +94,7 @@ export function createBaseCrudResolver<
         @CanPerform({
             action: Action.Read,
             // @ts-ignore
-            resource: options.modelName
+            resource: ModelName
         })
         async findOne(
             @CurrentAbility.HTTP() ability: any,
@@ -118,7 +119,7 @@ export function createBaseCrudResolver<
         @CanPerform({
             action: Action.Read,
             // @ts-ignore
-            resource: options.modelName
+            resource: ModelName
         })
         async findMany(
             @Info() info: GraphQLResolveInfo,
@@ -142,7 +143,7 @@ export function createBaseCrudResolver<
         @CanPerform({
             action: Action.Create,
             // @ts-ignore
-            resource: options.modelName
+            resource: ModelName
         })
         async create(
             @Info() info: GraphQLResolveInfo,
@@ -167,7 +168,7 @@ export function createBaseCrudResolver<
         @CanPerform({
             action: Action.Update,
             // @ts-ignore
-            resource: options.modelName
+            resource: ModelName
         })
         async updateOne(
             @Info() info: GraphQLResolveInfo,
@@ -194,7 +195,7 @@ export function createBaseCrudResolver<
         @CanPerform({
             action: Action.Update,
             // @ts-ignore
-            resource: options.modelName
+            resource: ModelName
         })
         async updateMany(
             @Info() info: GraphQLResolveInfo,
@@ -220,7 +221,7 @@ export function createBaseCrudResolver<
         @CanPerform({
             action: Action.Delete,
             // @ts-ignore
-            resource: options.modelName
+            resource: ModelName
         })
         async deleteOne(
             @Info() info: GraphQLResolveInfo,
@@ -245,7 +246,7 @@ export function createBaseCrudResolver<
         @CanPerform({
             action: Action.Delete,
             // @ts-ignore
-            resource: options.modelName
+            resource: ModelName
         })
         async deleteMany(
             @Info() info: GraphQLResolveInfo,
@@ -281,7 +282,7 @@ export function createBaseCrudResolver<
 
     // Give the dynamic class a descriptive name for easier debugging
     Object.defineProperty(BaseCrudResolver, 'name', {
-        value: `${firstLetterUppercase(options.modelName)}Resolver`,
+        value: `${ModelName}Resolver`,
         writable: false,
     });
 

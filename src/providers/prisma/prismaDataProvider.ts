@@ -10,6 +10,7 @@ import { Action } from "@eleven-am/authorizer";
 import { accessibleBy } from "@casl/prisma";
 import { PrismaClient } from "@prisma/client";
 import { ModuleRef } from "@nestjs/core";
+import {firstLetterUppercase} from "../../decorators";
 
 
 export function PrismaDataProvider (Service: Type<PrismaClient>): Type<DataProvider> {
@@ -193,7 +194,7 @@ export function PrismaDataProvider (Service: Type<PrismaClient>): Type<DataProvi
                 return {
                     where: {
                         id: where,
-                        AND: [accessibleBy(ability, action)[modelName]]
+                        AND: [accessibleBy(ability, action)[firstLetterUppercase(modelName)]]
                     }
                 };
             }
@@ -201,7 +202,7 @@ export function PrismaDataProvider (Service: Type<PrismaClient>): Type<DataProvi
             return {
                 where: {
                     AND: [
-                        accessibleBy(ability, action)[modelName],
+                        accessibleBy(ability, action)[firstLetterUppercase(modelName)],
                         where,
                     ]
                 }
