@@ -365,10 +365,10 @@ export declare class CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateMany
     /**
      * Adds a custom authorization logic class to the module.
      * This class should implement the `WillAuthorize` interface from `@eleven-am/authorizer`.
-     * @param authorizer The class implementing the `WillAuthorize` interface.
+     * @param authorizers The class implementing the `WillAuthorize` interface.
      * @returns The `CrudModuleConfig` instance for chaining.
      */
-    withAuthorization(authorizer: Type<WillAuthorize>): this;
+    withAuthorization(...authorizers: Type<WillAuthorize>[]): this;
 
     /**
      * Adds providers to the module. This is useful for injecting additional services or dependencies

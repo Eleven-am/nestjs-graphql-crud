@@ -152,13 +152,13 @@ export class CrudModuleConfig<
     }
 
     /**
-     * Adds a custom authorizer to the module
+     * Adds custom authorizers to the module
      *
      * @template WillAuthorize - The authorizer type
      *
      * @param {Type<WillAuthorize>[]} authorizers - The authorizer class
      */
-    withAuthorizations(...authorizers: Type<WillAuthorize>[]) {
+    withAuthorization(...authorizers: Type<WillAuthorize>[]) {
        return this.withProviders(...authorizers);
     }
 
