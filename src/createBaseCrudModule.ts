@@ -7,7 +7,7 @@ import { CrudModuleOptions, DefaultSubscriptionFilter } from "./internalTypes";
 import { createBaseCrudService } from "./createBaseCrudService";
 import { DynamicModule, Provider } from "@nestjs/common";
 import { createBaseCrudResolver } from "./createBaseCrudResolver";
-import { firstLetterUppercase } from "./decorators";
+import { firstLetterUppercase, PUB_SUB_SYMBOL } from "./decorators";
 import { createCombinedRelationResolverClass } from "./createCombinedRelationResolverClass";
 import { createSubscriptionResolver } from "./createSubscriptionResolver";
 
@@ -20,7 +20,6 @@ import { createSubscriptionResolver } from "./createSubscriptionResolver";
  * @template UpdateManyInput - The input type for update many operations
  * @template WhereInput - The input type for query filters
  *
- * @param {symbol} pubSubToken - Symbol for the PubSub token used for subscriptions
  * @param {symbol} dataProviderToken - Symbol for the data provider token
  * @param {symbol} fieldSelectionProviderToken - Symbol for the field selection provider token
  * @param {CrudModuleOptions<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>} options - Configuration options for the CRUD module
@@ -33,7 +32,6 @@ export function createBaseCrudModule <
     UpdateManyInput,
     WhereInput,
 >(
-    pubSubToken: symbol,
     dataProviderToken: symbol,
     fieldSelectionProviderToken: symbol,
     options: CrudModuleOptions<
@@ -52,13 +50,13 @@ export function createBaseCrudModule <
     // Create the service
     const BaseCrudService = createBaseCrudService(
         options.modelName,
-        pubSubToken,
+        PUB_SUB_SYMBOL,
         dataProviderToken
     );
 
     // Create the resolver
     const BaseCrudResolver = createBaseCrudResolver(
-        pubSubToken,
+        PUB_SUB_SYMBOL,
         serviceToken,
         subscriptionResolversToken,
         fieldSelectionProviderToken,
@@ -100,13 +98,16 @@ export function createBaseCrudModule <
             return {
                 global: true,
                 module: BaseCrudModule,
+                imports: options.imports,
+                exports: options.exports,
+                controllers: options.controllers,
                 providers: [
                     BaseCrudResolver,
                     RelationResolver,
                     BaseCrudServiceProvider,
                     SubscriptionResolverProvider,
                     ...CustomResolverFactories,
-                    ...(options.authorizer ? [options.authorizer] : []),
+                    ...(options.providers ?? []),
                 ],
             };
         }

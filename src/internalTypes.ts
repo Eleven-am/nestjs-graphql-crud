@@ -3,8 +3,8 @@
  * @description Type definitions for the CRUD module system
  */
 
-import { Type } from "@nestjs/common";
-import { AppAbilityType, WillAuthorize } from "@eleven-am/authorizer";
+import { Type, ModuleMetadata } from "@nestjs/common";
+import { AppAbilityType } from "@eleven-am/authorizer";
 import { Field, InputType } from "@nestjs/graphql";
 import { GraphQLResolveInfo } from "graphql";
 
@@ -203,7 +203,7 @@ export interface CreateBaseCrudResolverOptions<
     UpdateInput,
     UpdateManyInput,
     WhereInput,
-> {
+> extends ModuleMetadata {
     /** Name of the model in Prisma */
     modelName: string;
     /** Entity class */
@@ -332,8 +332,6 @@ export interface CrudModuleOptions<
     UpdateManyInput,
     WhereInput
 > {
-    /** Optional authorizer provider */
-    authorizer?: Type<WillAuthorize>;
     /** Optional relation resolvers */
     relationResolvers?: RelationResolverConfig<Item, unknown, unknown>[];
     /** Optional subscription resolver configuration */

@@ -10,8 +10,9 @@ import {
     OneToOneRelationResolverConfig,
     SubscriptionResolver,
 } from "./internalTypes";
-import { Type } from "@nestjs/common";
+import { DynamicModule, ForwardReference, Provider, Type } from "@nestjs/common";
 import { WillAuthorize } from "@eleven-am/authorizer";
+import { Abstract } from "@nestjs/common/interfaces/abstract.interface";
 
 /**
  * Configuration builder for CRUD modules with a fluent API
@@ -155,10 +156,65 @@ export class CrudModuleConfig<
      *
      * @template WillAuthorize - The authorizer type
      *
-     * @param {Type<WillAuthorize>} authorizer - The authorizer class
+     * @param {Type<WillAuthorize>[]} authorizers - The authorizer class
      */
-    withAuthorization(authorizer: Type<WillAuthorize>) {
-        this.options.authorizer = authorizer;
+    withAuthorizations(...authorizers: Type<WillAuthorize>[]) {
+       return this.withProviders(...authorizers);
+    }
+
+    /**
+     * Adds custom providers to the module
+     *
+     * @param {...Type[]} providers - The provider classes to add
+     * @returns {this} The configuration builder (for method chaining)
+     */
+    withProviders(...providers: Type[]): this {
+        if (!this.options.providers) {
+            this.options.providers = [];
+        }
+
+        this.options.providers.push(...providers);
+        return this;
+    }
+
+    /**
+     * Adds custom controllers to the module
+     *
+     * @param {...Type[]} controllers - The controller classes to add
+     * @returns {this} The configuration builder (for method chaining)
+     */
+    withControllers(...controllers: Type[]): this {
+        if (!this.options.controllers) {
+            this.options.controllers = [];
+        }
+
+        this.options.controllers.push(...controllers);
+        return this;
+    }
+
+    /**
+     * Adds imports to the module. This is useful for importing other modules that provide additional functionalities.
+     * @param imports An array of NestJS modules to be imported into this module.
+     */
+    import(...imports: (Type<any> | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this {
+        if (!this.options.imports) {
+            this.options.imports = [];
+        }
+
+        this.options.imports.push(...imports);
+        return this;
+    }
+
+    /**
+     * Adds exports to the module. This is useful for exporting providers or modules for use in other modules.
+     * @param exports An array of NestJS providers or modules to be exported from this module.
+     */
+    export (...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this{
+        if (!this.options.exports) {
+            this.options.exports = [];
+        }
+
+        this.options.exports.push(...exports);
         return this;
     }
 }

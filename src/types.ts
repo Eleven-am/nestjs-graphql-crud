@@ -1,9 +1,10 @@
 // index.d.ts (Corrected Final Version with Full Documentation)
 
-import { Type, DynamicModule } from '@nestjs/common';
+import {Type, DynamicModule, Provider, ForwardReference} from '@nestjs/common';
 import { GraphQLResolveInfo } from 'graphql';
 import {AppAbilityType, WillAuthorize} from '@eleven-am/authorizer';
 import { PrismaClient } from '@prisma/client';
+import { Abstract } from "@nestjs/common/interfaces/abstract.interface";
 
 // --- Core Types and Interfaces ---
 
@@ -368,6 +369,30 @@ export declare class CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateMany
      * @returns The `CrudModuleConfig` instance for chaining.
      */
     withAuthorization(authorizer: Type<WillAuthorize>): this;
+
+    /**
+     * Adds providers to the module. This is useful for injecting additional services or dependencies
+     * @param providers An array of NestJS providers to be included in the module.
+     */
+    withProviders(...providers: Provider[]): this;
+
+    /**
+     * Adds controllers to the module. This is useful for exposing additional endpoints or functionalities.
+     * @param controllers An array of NestJS controller classes to be included in the module.
+     */
+    withControllers(...controllers: Type[]): this;
+
+    /**
+     * Adds imports to the module. This is useful for importing other modules that provide additional functionalities.
+     * @param imports An array of NestJS modules to be imported into this module.
+     */
+    import(...imports: (Type<any> | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this;
+
+    /**
+     * Adds exports to the module. This is useful for exporting providers or modules for use in other modules.
+     * @param exports An array of NestJS providers or modules to be exported from this module.
+     */
+    export (...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this;
 }
 
 // --- Module Factory ---
@@ -507,3 +532,22 @@ export declare class PrismaFieldSelectionProvider implements FieldSelectionProvi
  * ```
  */
 export declare function PrismaDataProvider(Service: Type<PrismaClient>): Type<DataProvider>;
+
+/**
+ * A decorator function that marks a method's parameter as the current `PubSub` instance.'
+ * This is useful for injecting the `PubSub` instance into your subscription resolvers
+ * or other classes that need to publish events.
+ * @returns A parameter decorator that can be applied to method parameters.
+ * @example
+ * ```typescript
+ * import { PubSub } from 'graphql-subscriptions';
+ * import { CurrentPubSub } from '@eleven-am/nestjs-graphql-crud';
+ *
+ * class MySubscriptionResolver {
+ *   constructor(@CurrentPubSub() private pubSub: PubSub) {}
+ * }
+ * ```
+ * This decorator will inject the current `PubSub` instance into the constructor of your class.
+ * You can then use this instance to publish events to subscribers.
+ */
+export declare function CurrentPubSub (): ParameterDecorator

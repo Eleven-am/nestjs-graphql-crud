@@ -8,6 +8,7 @@ import { PubSub } from "graphql-subscriptions";
 import { DynamicModule, Provider, Type } from "@nestjs/common";
 import { CrudModuleConfig } from "./crudModuleConfig";
 import { DataProvider, FieldSelectionProvider } from "./internalTypes";
+import { PUB_SUB_SYMBOL } from "./decorators";
 
 /**
  * Factory class for creating and registering CRUD modules
@@ -68,20 +69,19 @@ export class CrudModulesFactory {
              * Creates and registers all CRUD modules using the specified providers
              *
              * @param {CrudModuleConfig<any, any, any, any, any>[]} configBuilders - Array of CRUD module configurations
-             * @param {any} [options] - Optional provider-specific configuration
+             * @param {any} [configBuilders] - Optional provider-specific configuration
              * @returns {DynamicModule} A NestJS dynamic module incorporating all configured CRUD modules
              */
             forRoot(
                 configBuilders: CrudModuleConfig<any, any, any, any, any>[],
             ): DynamicModule {
                 // Create tokens for the providers
-                const pubSubToken = Symbol('PubSub');
                 const dataProviderToken = Symbol('DataProvider');
                 const fieldSelectionProviderToken = Symbol('FieldSelectionProvider');
 
                 // Create providers
                 const pubSubProvider: Provider = {
-                    provide: pubSubToken,
+                    provide: PUB_SUB_SYMBOL,
                     useValue: new PubSub()
                 };
 
@@ -98,7 +98,6 @@ export class CrudModulesFactory {
                 // Create each CRUD module
                 const crudModules = configBuilders.map(builder => {
                     return createBaseCrudModule(
-                        pubSubToken,
                         dataProviderToken,
                         fieldSelectionProviderToken,
                         builder.options

@@ -3,7 +3,7 @@
  * @description Provides decorators and utility functions for GraphQL resolvers
  */
 
-import { Type } from "@nestjs/common";
+import { applyDecorators, Inject, Type } from "@nestjs/common";
 import { Field, InputType } from "@nestjs/graphql";
 import { FindManyContract } from "./internalTypes";
 
@@ -85,3 +85,9 @@ export function createFindMany<T> (whereInput: Type<T>, modelName: string): Type
 
     return FindManyArgs;
 }
+
+export const PUB_SUB_SYMBOL = Symbol('PUB_SUB_SYMBOL');
+
+export const CurrentPubSub = applyDecorators(
+    Inject(PUB_SUB_SYMBOL),
+)
