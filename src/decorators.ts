@@ -14,7 +14,7 @@ import { FindManyContract } from "./internalTypes";
  * @returns {string} String with first letter uppercase and remaining letters lowercase
  */
 export function firstLetterUppercase (str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 /**
