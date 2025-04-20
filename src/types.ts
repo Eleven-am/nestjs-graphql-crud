@@ -412,41 +412,37 @@ export declare class CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateMany
  * // 2. Provide configurations for all desired entities
  * .forRoot([
  * // Configure the 'User' entity
- * CrudModulesFactory.forEntity(User)
- * .withConfig({ // Basic CRUD setup
- * modelName: 'user',
- * createInput: UserCreateInput,
- * updateInput: UserUpdateInput,
- * updateManyInput: UserUpdateManyInput,
- * whereInput: UserWhereInput,
- * })
+ * CrudModulesFactory
+ *  .forEntity(User)
+ *  .withConfig({ // Basic CRUD setup
+ *     modelName: 'user',
+ *     createInput: UserCreateInput,
+ *     updateInput: UserUpdateInput,
+ *     updateManyInput: UserUpdateManyInput,
+ *     whereInput: UserWhereInput,
+ *  })
  * // Add relations (example: User has many Posts)
- * .addRelation<Post, PostWhereInput>({
- * fieldName: 'posts',
- * targetModel: 'post',
- * targetType: Post,
- * targetWhereInput: PostWhereInput,
- * whereNullable: true,
- * relationField: 'authorId' // 'authorId' field on Post points to User
- * })
+ *  .addRelation<Post, PostWhereInput>({
+ *     fieldName: 'posts',
+ *     targetModel: 'post',
+ *     targetType: Post,
+ *     targetWhereInput: PostWhereInput,
+ *     whereNullable: true,
+ *     relationField: 'authorId' // 'authorId' field on Post points to User
+ *  })
  * // Add custom subscription handling (optional)
- * .withSubscription({ filter: UserSubscriptionFilterInput, resolver: CustomUserSubscriptionResolver }),
+ *  .withSubscription({ filter: UserSubscriptionFilterInput, resolver: CustomUserSubscriptionResolver }),
  *
  * // Configure the 'Post' entity (example)
- * CrudModulesFactory.forEntity(Post)
- * .withConfig({ ...postConfig... })
- * .addOneToOneRelation<User>({ // Example: Post belongs to one User
- * fieldName: 'author',
- * targetModel: 'user',
- * targetType: User,
- * relationField: 'authorId' // 'authorId' field on Post points to User
- * }),
- *
- * // ... add configurations for other entities
- * ]),
- * // ... other NestJS module imports
- * ],
- * })
+ * CrudModulesFactory
+ *  .forEntity(Post)
+ *  .withConfig({ ...postConfig... })
+ *  .addOneToOneRelation<User>({ // Example: Post belongs to one User
+ *     fieldName: 'author',
+ *     targetModel: 'user',
+ *     targetType: User,
+ *     relationField: 'authorId' // 'authorId' field on Post points to User
+ *  }),
  * export class AppModule {}
  * ```
  */
