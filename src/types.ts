@@ -386,7 +386,7 @@ export declare class CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateMany
      * Adds imports to the module. This is useful for importing other modules that provide additional functionalities.
      * @param imports An array of NestJS modules to be imported into this module.
      */
-    import(...imports: (Type<any> | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this;
+    import(...imports: (Type | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this;
 
     /**
      * Adds exports to the module. This is useful for exporting providers or modules for use in other modules.
