@@ -14,7 +14,7 @@ import {
     SubscriptionResolver
 } from "./internalTypes";
 import {DynamicModule, ForwardReference, Provider, Type} from "@nestjs/common";
-import {Permission} from "@eleven-am/authorizer";
+import {Permission, WillAuthorize} from "@eleven-am/authorizer";
 import {Abstract} from "@nestjs/common/interfaces/abstract.interface";
 
 /**
@@ -145,6 +145,16 @@ export class BaseCrudModuleConfig<
 
         this.options.controllers.push(...controllers);
         return this;
+    }
+
+    /**
+     * Adds custom authorizers to the module
+     *
+     * @param {...Type<WillAuthorize>[]} authorizer - The authorizer classes to add
+     * @returns {this} The configuration builder (for method chaining)
+     */
+    withAuthorization(...authorizer: Type<WillAuthorize>[]): this {
+        return this.withProviders(...authorizer);
     }
 
     /**

@@ -2,7 +2,7 @@
 
 import {DynamicModule, ForwardReference, Provider, Type} from '@nestjs/common';
 import {GraphQLResolveInfo} from 'graphql';
-import {AppAbilityType, Permission} from '@eleven-am/authorizer';
+import {AppAbilityType, Permission, WillAuthorize} from '@eleven-am/authorizer';
 import {PrismaClient} from '@prisma/client';
 import {Abstract} from "@nestjs/common/interfaces/abstract.interface";
 
@@ -319,6 +319,14 @@ export declare class BaseCrudModuleConfig<
      * @returns The configuration builder for chaining
      */
     withControllers(...controllers: Type[]): this;
+
+    /**
+     * Adds custom authorizers to the module
+     *
+     * @param {...Type<WillAuthorize>[]} authorizer - The authorizer classes to add
+     * @returns {this} The configuration builder (for method chaining)
+     */
+    withAuthorization(...authorizer: Type<WillAuthorize>[]): this;
 
     /**
      * Adds imports to the module.
