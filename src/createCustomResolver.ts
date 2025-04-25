@@ -29,7 +29,7 @@ export function createCustomResolver<
             async [config.name](
                 @Info() info: GraphQLResolveInfo,
                 @CurrentAbility.HTTP() ability: AppAbilityType,
-                @Args('data', {type: () => config.inputType}) args: any
+                @Args('args', {type: () => config.inputType}) args: any
             ) {
                 const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
                 const factory = this.service.getFactory(FactoryClass);
@@ -51,7 +51,7 @@ export function createCustomResolver<
                 @Parent() item: Item,
                 @Info() info: GraphQLResolveInfo,
                 @CurrentAbility.HTTP() ability: AppAbilityType,
-                @Args('where', {type: () => config.inputType, nullable: config.nullable}) where?: any
+                @Args('args', {type: () => config.inputType, nullable: config.nullable}) where?: any
             ) {
                 const select = this.service.fieldSelectionProvider.parseSelection<Target>(info);
                 const factory = this.service.getFactory(FactoryClass);
@@ -72,7 +72,7 @@ export function createCustomResolver<
             async [config.name](
                 @Info() info: GraphQLResolveInfo,
                 @CurrentAbility.HTTP() ability: AppAbilityType,
-                @Args('where', {type: () => config.inputType, nullable: config.nullable}) where?: any
+                @Args('args', {type: () => config.inputType, nullable: config.nullable}) where?: any
             ): Promise<Item | null> {
                 const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
                 const factory = this.service.getFactory(FactoryClass);
