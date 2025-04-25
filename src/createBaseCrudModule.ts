@@ -65,6 +65,7 @@ export function createBaseCrudModule <
     const SubscriptionResolver = createSubscriptionResolver(
         options.modelName,
         dataProviderToken,
+        fieldSelectionProviderToken,
         options.subscriptionResolver?.resolver
     );
 
