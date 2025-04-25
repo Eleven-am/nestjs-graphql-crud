@@ -294,7 +294,7 @@ export class CustomResolverConfig<
         const customConfig: CustomResolver<TResolver, M> = {
             ...config,
             inputType: config.inputType,
-            outputType: this.options.entity,
+            outputType: () => this.options.entity as any,
             isMutation: false,
         };
 
@@ -334,7 +334,7 @@ export class CustomResolverConfig<
         const customConfig: CustomResolver<TResolver, M> = {
             ...config,
             inputType: config.inputType,
-            outputType: this.options.entity,
+            outputType: () => this.options.entity as any,
             isMutation: true,
         };
 
@@ -366,7 +366,7 @@ export class CustomResolverConfig<
             name: string;
             description?: string;
             inputType?: Type<ParametersOfResolveMethod<Item, TResolver, M>>;
-            outputType: Type;
+            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
