@@ -209,7 +209,7 @@ export interface CustomResolver<TResolver, M extends keyof TResolver> {
     /** The args for the resolver */
     inputType: Type<ParametersOfMethod<TResolver, M>>;
     /** The return type of the resolver */
-    outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+    outputType: Type;
     /** Whether the input type is nullable */
     nullable?: boolean;
     /** The name of the method in the resolver class */
@@ -220,6 +220,8 @@ export interface CustomResolver<TResolver, M extends keyof TResolver> {
     isMutation: boolean;
     /** Whether to resolve an additional field */
     resolveField?: string;
+    /** Whether it returns a list of items */
+    isList?: boolean;
 }
 
 /**

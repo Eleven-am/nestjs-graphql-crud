@@ -7,12 +7,6 @@ import {PrismaClient} from '@prisma/client';
 import {Abstract} from "@nestjs/common/interfaces/abstract.interface";
 
 /**
- * A function type that returns the value when called.
- * Used for lazy evaluation of types to avoid circular dependencies.
- */
-export type Getter<T> = () => T;
-
-/**
  * Type helper to extract parameter types from a method.
  * Specifically designed to extract the first argument from methods with the
  * signature (arg1: T, ability: AppAbilityType, select: any).
@@ -425,9 +419,10 @@ export declare class CustomResolverConfig<
     >(
         config: {
             name: string;
+            isList?: boolean;
             description?: string;
             inputType: Type<ParametersOfMethod<TResolver, M>>;
-            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            outputType: Type,
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -449,9 +444,10 @@ export declare class CustomResolverConfig<
     >(
         config: {
             name: string;
+            isList?: boolean;
             description?: string;
             inputType: Type<ParametersOfMethod<TResolver, M>>;
-            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            outputType: Type;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -473,9 +469,10 @@ export declare class CustomResolverConfig<
     >(
         config: {
             name: string;
+            isList?: boolean;
             description?: string;
             inputType: Type<ParametersOfResolveMethod<Item, TResolver, M>>;
-            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            outputType: Type;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
