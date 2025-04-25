@@ -79,9 +79,6 @@ export function createBaseCrudModule <
         options.resolvers
     );
 
-    const CustomResolverFactories = options.resolvers?.customResolvers?
-        [options.resolvers.customResolvers.factoryClass] : [];
-
     class BaseCrudModule {
         /**
          * Creates and configures the CRUD module with all necessary providers
@@ -99,7 +96,6 @@ export function createBaseCrudModule <
                     CrudResolver,
                     BaseCrudServiceProvider,
                     SubscriptionResolverProvider,
-                    ...CustomResolverFactories,
                     ...(options.providers ?? []),
                 ],
             };
