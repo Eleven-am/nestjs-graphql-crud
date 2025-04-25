@@ -37,7 +37,7 @@ export type ReturnTypeOfMethod<Target, Method extends keyof Target> = Target[Met
  *
  * @template WhereInput - The type of the where input
  */
-export interface FindManyContract<WhereInput> {
+export declare class FindManyContract<WhereInput> {
     /** Filter criteria */
     where?: WhereInput;
     /** Pagination parameters */
