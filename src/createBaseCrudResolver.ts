@@ -8,7 +8,7 @@ import {
     FindManyContract,
     IGenericCrudService,
     SubscriptionResolver,
-    FieldSelectionProvider
+    IResolver
 } from "./internalTypes";
 import { Args, Mutation, Query, Resolver, Subscription, Info } from "@nestjs/graphql";
 import { PubSub } from "graphql-subscriptions";
@@ -39,12 +39,14 @@ export function createBaseCrudResolver<
     CreateInput,
     UpdateInput,
     UpdateManyInput,
-    WhereInput
+    WhereInput,
+    Target,
+    TargetWhereInput,
+    TResolver extends object,
 > (
     pubSubToken: symbol,
     serviceToken: symbol,
     resolverToken: symbol,
-    fieldSelectionToken: symbol,
     SubscriptionFilter: Type,
     options: CreateBaseCrudResolverOptions<
         Item,
@@ -53,7 +55,7 @@ export function createBaseCrudResolver<
         UpdateManyInput,
         WhereInput
     >
-): Type {
+): Type<IResolver<any, any, any, any, any, any, any, any>> {
     const ModelName = firstLetterUppercase(options.modelName);
     const FindManyContract = createFindMany(options.whereInput, options.modelName);
 
@@ -67,16 +69,18 @@ export function createBaseCrudResolver<
     > {
         constructor(
             @Inject(serviceToken)
-            private readonly service: IGenericCrudService<
+            readonly service: IGenericCrudService<
                 Item,
                 CreateInput,
                 UpdateInput,
                 UpdateManyInput,
-                WhereInput
+                WhereInput,
+                Target,
+                TargetWhereInput,
+                TResolver
             >,
             @Inject(pubSubToken) private readonly pubSub: PubSub,
             @Inject(resolverToken) private readonly resolver: SubscriptionResolver<Item, unknown>,
-            @Inject(fieldSelectionToken) private readonly fieldSelectionProvider: FieldSelectionProvider
         ) {}
 
         /**
@@ -101,7 +105,7 @@ export function createBaseCrudResolver<
             @Info() info: GraphQLResolveInfo,
             @Args('where', { type: () => options.whereInput }) where: WhereInput
         ): Promise<Item | null> {
-            const select = this.fieldSelectionProvider.parseSelection<Item>(info);
+            const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.findOne(ability, where, select);
         }
 
@@ -126,7 +130,7 @@ export function createBaseCrudResolver<
             @CurrentAbility.HTTP() ability: AppAbilityType,
             @Args('filter', {type: () => FindManyContract, nullable: true}) where?: FindManyContract<WhereInput>,
         ): Promise<Item[]> {
-            const select = this.fieldSelectionProvider.parseSelection<Item>(info);
+            const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.findMany(ability, where || {}, select);
         }
 
@@ -149,7 +153,7 @@ export function createBaseCrudResolver<
             @Info() info: GraphQLResolveInfo,
             @Args('data', { type: () => options.createInput }) args: CreateInput
         ): Promise<Item> {
-            const select = this.fieldSelectionProvider.parseSelection<Item>(info);
+            const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.create(args, select);
         }
 
@@ -176,7 +180,7 @@ export function createBaseCrudResolver<
             @Args('data', { type: () => options.updateInput }) data: UpdateInput,
             @Args('id', { type: () => String }) id: string
         ): Promise<Item> {
-            const select = this.fieldSelectionProvider.parseSelection<Item>(info);
+            const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.update(ability, data, id, select);
         }
 
@@ -203,7 +207,7 @@ export function createBaseCrudResolver<
             @Args('data', { type: () => options.updateManyInput }) data: UpdateManyInput,
             @Args('where', { type: () => options.whereInput }) where: WhereInput
         ): Promise<Item[]> {
-            const select = this.fieldSelectionProvider.parseSelection<Item>(info);
+            const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.updateMany(ability, data, where, select);
         }
 
@@ -228,7 +232,7 @@ export function createBaseCrudResolver<
             @CurrentAbility.HTTP() ability: AppAbilityType,
             @Args('id', { type: () => String }) id: string
         ): Promise<Item> {
-            const select = this.fieldSelectionProvider.parseSelection<Item>(info);
+            const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.delete(ability, id, select);
         }
 
@@ -253,7 +257,7 @@ export function createBaseCrudResolver<
             @CurrentAbility.HTTP() ability: AppAbilityType,
             @Args('where', { type: () => options.whereInput }) where: WhereInput
         ): Promise<Item[]> {
-            const select = this.fieldSelectionProvider.parseSelection<Item>(info);
+            const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.deleteMany(ability, where, select);
         }
 

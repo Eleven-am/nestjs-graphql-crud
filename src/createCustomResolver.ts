@@ -1,118 +1,90 @@
-/**
- * @module createCustomResolver
- * @description Creates a custom relation resolver class for complex relation scenarios
- */
+import {Type} from "@nestjs/common";
+import {CustomResolver, IResolver} from "./internalTypes";
+import {Args, Info, Mutation, Parent, Query, ResolveField, Resolver} from "@nestjs/graphql";
+import {AppAbilityType, CanPerform, CurrentAbility} from "@eleven-am/authorizer";
+import {GraphQLResolveInfo} from "graphql/type";
+import {firstLetterUppercase} from "./decorators";
 
-import {
-    Constructor, CustomRelationResolver,
-    CustomResolverConfig, FindManyContract,
-    IResolverClass,
-} from "./internalTypes";
-import { Args, Info, Parent, ResolveField, Resolver } from "@nestjs/graphql";
-import { firstLetterUppercase } from "./decorators";
-import { AppAbilityType, CurrentAbility } from "@eleven-am/authorizer";
-import { Type } from "@nestjs/common";
-import { GraphQLResolveInfo } from "graphql";
-
-/**
- * Creates a custom resolver class for complex relation scenarios using factory classes
- *
- * @template Item - The parent entity type
- * @template Target - The related entity type
- * @template WhereInput - The input type for query filters
- *
- * @param {string} modelName - The name of the model
- * @param {Type<Item>} item - The parent entity class
- * @param {Constructor<IResolverClass<Item, Target, WhereInput>>} ParentClass - The parent resolver class to extend
- * @param {CustomResolverConfig<Item, Target, WhereInput>} config - Configuration for the custom resolver
- * @returns {Constructor<IResolverClass<Item, Target, WhereInput>>} The extended resolver class
- */
-export function createCustomResolver<Item, Target, WhereInput>(
-    modelName: string,
+export function createCustomResolver<
+    Item,
+    Target,
+    TResolver extends object,
+    MethodName extends keyof TResolver,
+>(
     item: Type<Item>,
-    ParentClass: Constructor<IResolverClass<Item, Target, WhereInput>>,
-    config: CustomResolverConfig<Item, Target, WhereInput>
-): Constructor<IResolverClass<Item, Target, WhereInput>> {
-    const resolveMethodName = `resolve${firstLetterUppercase(config.fieldName)}`;
-
-    // Create a resolver with where input parameter if targetWhereInput is provided
-    if (config.targetWhereInput) {
-        // @ts-ignore
+    modelName: string,
+    FactoryClass: Type<TResolver>,
+    config: CustomResolver<TResolver, MethodName>,
+    ParentClass: Type<IResolver<any, any, any, any, any, Target, any, any>>
+): Type<IResolver<any, any, any, any, any, Target, any, any>> {
+    let Class: Type<IResolver<any, any, any, any, any, Target, any, any>>;
+    if (config.isMutation) {
         @Resolver(() => item)
-        // @ts-ignore
-        class CustomResolver extends ParentClass<Target> {
-            /**
-             * Resolver method for a custom relation field
-             *
-             * @param {Item} item - The parent entity instance
-             * @param {GraphQLResolveInfo} info - The GraphQL resolve info
-             * @param {AppAbilityType} ability - The user's ability for authorization
-             * @param {FindManyContract<WhereInput>} where - Filter criteria
-             * @returns {Promise<Target | Target[]>} The resolved related entity or entities
-             */
-            @ResolveField(config.fieldName, () => Boolean(config.isMany) ? [config.targetType] : config.targetType)
-            async [resolveMethodName](
-                @Parent() item: Item,
+        class CustomResolverImpl extends ParentClass {
+            @Mutation(() => item, {
+                description: config.description,
+            })
+            @CanPerform(...config.permissions)
+            async [config.name](
                 @Info() info: GraphQLResolveInfo,
                 @CurrentAbility.HTTP() ability: AppAbilityType,
-                @Args('filter', {
-                    type: () => config.targetWhereInput,
-                    nullable: config.whereNullable
-                }) where?: FindManyContract<WhereInput>
-            ): Promise<Target | Target[]> {
+                @Args('data', {type: () => config.inputType}) args: any
+            ) {
+                const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
+                const factory = this.service.getFactory(FactoryClass);
                 // @ts-ignore
-                // Convert GraphQL field selection to the appropriate format for data provider
-                const select = this.fieldSelectionProvider.parseSelection<Target>(info);
-
-                // @ts-ignore
-                const instance = this.getFactory(config.factoryClass) as unknown as CustomRelationResolver<Item, Target, WhereInput>;
-                return instance.resolve(ability, item, select, where);
+                return factory[config.methodName](args, ability, select);
             }
         }
 
-        // Give the dynamic class a descriptive name for easier debugging
-        Object.defineProperty(CustomResolver, 'name', {
-            value: `${firstLetterUppercase(modelName)}RelationsResolver`,
-            writable: false,
-        });
+        Class = CustomResolverImpl;
+    } else if (config.resolveField) {
+        @Resolver(() => item)
+        class CustomResolverImpl extends ParentClass {
+            @ResolveField(config.resolveField, config.outputType)
+            @CanPerform(...config.permissions)
+            async [config.name](
+                @Parent() item: Item,
+                @Info() info: GraphQLResolveInfo,
+                @CurrentAbility.HTTP() ability: AppAbilityType,
+            ) {
+                const select = this.service.fieldSelectionProvider.parseSelection<Target>(info);
+                const factory = this.service.getFactory(FactoryClass);
+                // @ts-ignore
+                return factory[config.methodName](item, ability, select);
+            }
+        }
 
-        return CustomResolver as Constructor<IResolverClass<Item, Target, WhereInput>>;
+        Class = CustomResolverImpl;
     } else {
-        // Create a resolver without where input parameter if targetWhereInput is not provided
-        // @ts-ignore
         @Resolver(() => item)
-        // @ts-ignore
-        class CustomResolver extends ParentClass<Target> {
-            /**
-             * Resolver method for a custom relation field without filtering
-             *
-             * @param {Item} item - The parent entity instance
-             * @param {GraphQLResolveInfo} info - The GraphQL resolve info
-             * @param {AppAbilityType} ability - The user's ability for authorization
-             * @returns {Promise<Target | Target[]>} The resolved related entity or entities
-             */
-            @ResolveField(config.fieldName, () => Boolean(config.isMany) ? [config.targetType] : config.targetType)
-            async [resolveMethodName](
-                @Parent() item: Item,
+        class CustomResolverImpl extends ParentClass {
+            @Query(() => item, {
+                name: config.name,
+                nullable: true,
+            })
+            @CanPerform(...config.permissions)
+            async [config.name](
                 @Info() info: GraphQLResolveInfo,
                 @CurrentAbility.HTTP() ability: AppAbilityType,
-            ): Promise<Target | Target[]> {
+                @Args('where', {type: () => config.inputType, nullable: config.nullable}) where?: any
+            ): Promise<Item | null> {
+                const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
+                const factory = this.service.getFactory(FactoryClass);
                 // @ts-ignore
-                // Convert GraphQL field selection to the appropriate format for data provider
-                const select = this.fieldSelectionProvider.parseSelection<Target>(info);
-
-                // @ts-ignore
-                const instance = this.getFactory(config.factoryClass) as unknown as CustomRelationResolver<Item, Target, WhereInput>;
-                return instance.resolve(ability, item, select, undefined);
+                return factory[config.methodName](where, ability, select);
             }
         }
 
-        // Give the dynamic class a descriptive name for easier debugging
-        Object.defineProperty(CustomResolver, 'name', {
-            value: `${firstLetterUppercase(modelName)}RelationsResolver`,
-            writable: false,
-        });
-
-        return CustomResolver as Constructor<IResolverClass<Item, Target, WhereInput>>;
+        Class = CustomResolverImpl;
     }
+
+    const name = `${firstLetterUppercase(modelName)}${firstLetterUppercase(config.name)}Resolver`;
+
+    Object.defineProperty(Class, 'name', {
+        value: name,
+        writable: false,
+    });
+
+    return Class;
 }

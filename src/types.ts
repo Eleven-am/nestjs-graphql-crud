@@ -1,12 +1,32 @@
-// index.d.ts (Corrected Final Version with Full Documentation)
+// index.d.ts (Updated Version with Custom Resolver Support)
 
-import {Type, DynamicModule, Provider, ForwardReference} from '@nestjs/common';
-import { GraphQLResolveInfo } from 'graphql';
-import {AppAbilityType, WillAuthorize} from '@eleven-am/authorizer';
-import { PrismaClient } from '@prisma/client';
-import { Abstract } from "@nestjs/common/interfaces/abstract.interface";
+import {DynamicModule, ForwardReference, Provider, Type} from '@nestjs/common';
+import {GraphQLResolveInfo} from 'graphql';
+import {AppAbilityType, Permission} from '@eleven-am/authorizer';
+import {PrismaClient} from '@prisma/client';
+import {Abstract} from "@nestjs/common/interfaces/abstract.interface";
 
-// --- Core Types and Interfaces ---
+/**
+ * A function type that returns the value when called.
+ * Used for lazy evaluation of types to avoid circular dependencies.
+ */
+export type Getter<T> = () => T;
+
+/**
+ * Type helper to extract parameter types from a method.
+ * Specifically designed to extract the first argument from methods with the
+ * signature (arg1: T, ability: AppAbilityType, select: any).
+ */
+export type ParametersOfMethod<T, M extends keyof T> = T[M] extends (...args: any[]) => any
+    ? Parameters<T[M]> extends [infer Argument, AppAbilityType, any] ? Argument : never
+    : never;
+
+/**
+ * Type helper to extract a return type from a method.
+ */
+export type ReturnTypeOfMethod<T, M extends keyof T> = T[M] extends (...args: any[]) => any
+    ? ReturnType<T[M]>
+    : never;
 
 /**
  * Defines the structure for pagination arguments.
@@ -17,18 +37,6 @@ export interface PaginationContract {
     take: number;
     /** Number of records to skip (e.g., for offset pagination). */
     skip: number;
-}
-
-/**
- * Defines the structure for 'find many' operations, including filtering and pagination.
- * Often used as input for DataProvider methods or GraphQL query arguments.
- * @template WhereInput The type defining the filter criteria for the entity.
- */
-export interface FindManyContract<WhereInput> {
-    /** The filter criteria object. */
-    where?: WhereInput;
-    /** Pagination parameters. */
-    pagination?: PaginationContract;
 }
 
 /**
@@ -97,7 +105,11 @@ export interface DataProvider {
      * @template EntityType The type of the entity being queried.
      * @template WhereInputType The type defining the filter criteria.
      */
-    findMany<EntityType, WhereInputType>(modelName: string, ability: AppAbilityType, args: { where: WhereInputType; pagination?: PaginationContract; orderBy?: Record<string, 'asc' | 'desc'>; }, select: Record<string, boolean>): Promise<EntityType[]>;
+    findMany<EntityType, WhereInputType>(modelName: string, ability: AppAbilityType, args: {
+        where: WhereInputType;
+        pagination?: PaginationContract;
+        orderBy?: Record<string, 'asc' | 'desc'>;
+    }, select: Record<string, boolean>): Promise<EntityType[]>;
 
     /**
      * Creates a new entity with the given data. Authorization for creation might be handled
@@ -171,6 +183,7 @@ export interface DataProvider {
  * Implement this interface to provide custom logic for how subscription events generated
  * by the CRUD service are filtered for specific clients and how the final payload is shaped.
  * Used with `CrudModuleConfig.withSubscription`.
+ *
  * @template EntityType The entity type being tracked by the subscription.
  * @template FilterType The type defining the filter criteria provided by the client when subscribing.
  */
@@ -202,12 +215,11 @@ export interface SubscriptionResolver<EntityType, FilterType> {
  */
 export type Constructor<Class, Parameters extends any[] = any[]> = new (...args: Parameters) => Class;
 
-// --- Relation Configuration Definitions ---
-
 /**
  * Defines the configuration for resolving a standard one-to-many relationship
  * (e.g., a User has many Posts, where Post has a `userId` field).
  * Used as input for `CrudModuleConfig.addRelation`.
+ *
  * @template Target The related entity type (the "many" side, e.g., `Post`).
  * @template WhereInput Input type for filtering the related entities (e.g., `PostWhereInput`).
  */
@@ -223,179 +235,237 @@ export interface OneToManyRelationResolverConfig<Target, WhereInput> {
     /** Whether the filter argument (`targetWhereInput`) is nullable in the GraphQL schema. */
     whereNullable: boolean;
     /** The name of the field on the related entity (`Target`) that holds the foreign key referencing the parent entity's ID (e.g., "userId" on the `Post` entity). */
-    relationField: keyof Target;
+    relationField: keyof Target & string;
 }
 
 /**
- * Interface for implementing custom logic to resolve a relation between entities.
- * Use this for complex scenarios not covered by standard one-to-one or one-to-many,
- * such as many-to-many relations requiring join table logic or computed relations.
- * Provide a class implementing this interface to `CustomRelationInput` or `CustomArrayRelationInput`.
- * @template Item The parent entity type (the entity type the relation field belongs to).
- * @template Target The related entity type (can be a single entity `T` or an array `T[]`).
- * @template WhereInput Input type for filtering the related entities (if applicable).
+ * Interface for a one-to-one relation configuration.
+ * Used to define relationships where one entity relates to exactly one instance of another entity.
+ *
+ * @template Item The parent entity type
+ * @template Target The related entity type
  */
-export interface CustomRelationResolver<Item, Target, WhereInput> {
-    /**
-     * The method that implements the custom relation resolution logic.
-     * It receives the parent object, authorization context, selection context, and any GraphQL arguments.
-     * @param ability The authorization ability object for the current user/request context.
-     * @param item The parent entity instance from which the relation originates.
-     * @param context Often includes field selection info (`select`) derived from `GraphQLResolveInfo`. Use this to optimize fetching.
-     * @param args Optional arguments passed to the relation field in the GraphQL query (e.g., filters defined by `WhereInput`).
-     * @returns A promise resolving to the related entity (`Target` is `T`) or entities (`Target` is `T[]`).
-     */
-    resolve(ability: AppAbilityType, item: Item, context: any, args?: FindManyContract<WhereInput>): Promise<Target | Target[]>;
-}
-
-// --- Simplified Input Types for CrudModuleConfig ---
-
-/**
- * Defines the configuration input for a standard one-to-one relationship
- * (e.g., a User has one Profile, where User has a `profileId` field).
- * Used as input for `CrudModuleConfig.addOneToOneRelation`.
- * @template Item The parent entity type (e.g., `User`).
- * @template Target The related entity type (e.g., `Profile`).
- */
-export interface OneToOneRelationInput<Item, Target> {
-    /** The name of the field in the GraphQL schema representing this relation (e.g., "profile"). */
+export interface OneToOneRelationResolverConfig<Item, Target> {
+    /** The name of the field in the GraphQL schema */
     fieldName: string;
-    /** The logical name or identifier of the related model (e.g., Prisma model name "profile"). */
+    /** The name of the target model */
     targetModel: string;
-    /** The class representing the related entity type (e.g., `Profile`). */
+    /** The class representing the target entity */
     targetType: Type<Target>;
-    /** The name of the field on the parent entity (`Item`) that holds the foreign key referencing the related entity (`Target`)'s ID (e.g., "profileId" on the `User` entity). */
+    /** The name of the field on the parent entity that holds the foreign key */
     relationField: keyof Item;
 }
 
 /**
- * Defines the configuration input for a custom relationship resolver that returns a single entity.
- * Used as input for `CrudModuleConfig.addCustomRelation`.
- * @template Item The parent entity type.
- * @template Target The related entity type (single).
- * @template WhereInput Input type for filtering the related entities (if applicable).
+ * Base configuration builder for CRUD modules with common functionality.
+ *
+ * @template Item The entity type
+ * @template CreateInput The input type for create operations
+ * @template UpdateInput The input type for update operations
+ * @template UpdateManyInput The input type for update many operations
+ * @template WhereInput The input type for query filters
  */
-export interface CustomRelationInput<Item, Target, WhereInput> {
-    /** The name of the field in the GraphQL schema representing this relation. */
-    fieldName: string;
-    /** Optional input type class used for filtering related entities in the GraphQL query. */
-    targetWhereInput?: Type<WhereInput>;
-    /** The class representing the related entity type. */
-    targetType: Type<Target>;
-    /** Whether the filter argument (`targetWhereInput`) is nullable in the GraphQL schema. */
-    whereNullable: boolean;
-    /** The class that implements the `CustomRelationResolver` interface for this relation. Must resolve to a single `Target`. */
-    factoryClass: Type<CustomRelationResolver<Item, Target, WhereInput>>;
-}
-
-/**
- * Defines the configuration input for a custom relationship resolver that returns an array of entities.
- * Used as input for `CrudModuleConfig.addCustomArrayRelation`.
- * @template Item The parent entity type.
- * @template Target The *single* related entity type (the resolver will return `Target[]`).
- * @template WhereInput Input type for filtering the related entities (if applicable).
- */
-export interface CustomArrayRelationInput<Item, Target, WhereInput> {
-    /** The name of the field in the GraphQL schema representing this relation. */
-    fieldName: string;
-    /** Optional input type class used for filtering related entities in the GraphQL query. */
-    targetWhereInput?: Type<WhereInput>;
-    /** The class representing the *single* related entity type (the resolver must return `Target[]`). */
-    targetType: Type<Target>;
-    /** Whether the filter argument (`targetWhereInput`) is nullable in the GraphQL schema. */
-    whereNullable: boolean;
-    /** The class that implements the `CustomRelationResolver` interface for this relation. Must resolve to `Target[]`. */
-    factoryClass: Type<CustomRelationResolver<Item, Target[], WhereInput>>;
-}
-
-// --- Configuration Builder ---
-
-/**
- * Provides a fluent API for configuring a CRUD module for a specific entity.
- * Instances are created via `CrudModulesFactory.forEntity(...).withConfig(...)`.
- * Use its methods (`addRelation`, `withSubscription`, etc.) to customize module generation by adding
- * relation resolvers and subscription handling before passing the config to `CrudModulesFactory.forRoot`.
- * @template Item The primary entity type for this module (e.g., `User`).
- * @template CreateInput Input type class for creating the entity (e.g., `UserCreateInput`).
- * @template UpdateInput Input type class for updating the entity (e.g., `UserUpdateInput`).
- * @template UpdateManyInput Input type class for updating multiple entities (e.g., `UserUpdateManyInput`).
- * @template WhereInput Input type class for filtering the entity (e.g., `UserWhereInput`).
- */
-export declare class CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput> {
+export declare class BaseCrudModuleConfig<
+    Item,
+> {
     /**
-     * Adds configuration for resolving a standard one-to-many relationship.
-     * The library will automatically generate the necessary resolver logic.
-     * @param config Configuration object defining the one-to-many relation details.
-     * @returns The `CrudModuleConfig` instance for chaining.
+     * Adds a one-to-many relation resolver to the module.
+     *
+     * @template Target The related entity type
+     * @template TargetWhereInput The input type for filtering related entities
+     * @param config Configuration for the one-to-many relation resolver
+     * @returns The configuration builder for chaining
      */
-    addRelation<Target, TargetWhereInput>(config: OneToManyRelationResolverConfig<Target, TargetWhereInput>): this;
+    addRelation<Target, TargetWhereInput>(
+        config: OneToManyRelationResolverConfig<Target, TargetWhereInput>
+    ): this;
 
     /**
-     * Adds configuration for resolving a relation using a custom resolver class provided by you.
-     * Use this for complex logic. The custom resolver must return a single related entity.
-     * @param config Configuration object pointing to your `CustomRelationResolver` implementation.
-     * @returns The `CrudModuleConfig` instance for chaining.
+     * Adds a one-to-one relation resolver to the module.
+     *
+     * @template Target The related entity type
+     * @param config Configuration for the one-to-one relation resolver
+     * @returns The configuration builder for chaining
      */
-    addCustomRelation<Target, TargetWhereInput>(config: CustomRelationInput<Item, Target, TargetWhereInput>): this;
+    addOneToOneRelation<Target>(
+        config: OneToOneRelationResolverConfig<Item, Target>
+    ): this;
 
     /**
-     * Adds configuration for resolving a relation using a custom resolver class provided by you.
-     * Use this for complex logic. The custom resolver must return an array of related entities.
-     * @param config Configuration object pointing to your `CustomRelationResolver` implementation.
-     * @returns The `CrudModuleConfig` instance for chaining.
+     * Adds a custom subscription resolver to the module.
+     *
+     * @template FilterType The filter type for subscriptions
+     * @param config Configuration for the subscription resolver
+     * @returns The configuration builder for chaining
      */
-    addCustomArrayRelation<Target, TargetWhereInput>(config: CustomArrayRelationInput<Item, Target, TargetWhereInput>): this;
+    withSubscription<FilterType>(config: {
+        filter: Type<FilterType>;
+        resolver: Type<SubscriptionResolver<Item, FilterType>>;
+    }): this;
 
     /**
-     * Adds configuration for resolving a standard one-to-one relationship.
-     * The library will automatically generate the necessary resolver logic.
-     * @param config Configuration object defining the one-to-one relation details.
-     * @returns The `CrudModuleConfig` instance for chaining.
+     * Adds custom providers to the module.
+     *
+     * @param providers The provider classes to add
+     * @returns The configuration builder for chaining
      */
-    addOneToOneRelation<Target>(config: OneToOneRelationInput<Item, Target>): this;
+    withProviders(...providers: Type[]): this;
 
     /**
-     * Adds configuration for custom subscription filtering and resolution logic.
-     * Provide your own filter input type and an implementation of `SubscriptionResolver`.
-     * @param config Object containing the GraphQL filter input type class and the `SubscriptionResolver` implementation class.
-     * @returns The `CrudModuleConfig` instance for chaining.
-     */
-    withSubscription<FilterType>(config: { filter: Type<FilterType>; resolver: Type<SubscriptionResolver<Item, FilterType>>; }): this;
-
-    /**
-     * Adds a custom authorization logic class to the module.
-     * This class should implement the `WillAuthorize` interface from `@eleven-am/authorizer`.
-     * @param authorizers The class implementing the `WillAuthorize` interface.
-     * @returns The `CrudModuleConfig` instance for chaining.
-     */
-    withAuthorization(...authorizers: Type<WillAuthorize>[]): this;
-
-    /**
-     * Adds providers to the module. This is useful for injecting additional services or dependencies
-     * @param providers An array of NestJS providers to be included in the module.
-     */
-    withProviders(...providers: Provider[]): this;
-
-    /**
-     * Adds controllers to the module. This is useful for exposing additional endpoints or functionalities.
-     * @param controllers An array of NestJS controller classes to be included in the module.
+     * Adds custom controllers to the module.
+     *
+     * @param controllers The controller classes to add
+     * @returns The configuration builder for chaining
      */
     withControllers(...controllers: Type[]): this;
 
     /**
-     * Adds imports to the module. This is useful for importing other modules that provide additional functionalities.
-     * @param imports An array of NestJS modules to be imported into this module.
+     * Adds imports to the module.
+     *
+     * @param imports The modules to import
+     * @returns The configuration builder for chaining
      */
     import(...imports: (Type | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this;
 
     /**
-     * Adds exports to the module. This is useful for exporting providers or modules for use in other modules.
-     * @param exports An array of NestJS providers or modules to be exported from this module.
+     * Adds exports to the module.
+     *
+     * @param exports The providers or modules to export
+     * @returns The configuration builder for chaining
      */
-    export (...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this;
+    export(...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this;
 }
 
-// --- Module Factory ---
+/**
+ * Main configuration builder for CRUD modules with a fluent API.
+ * Inherits common functionality from BaseCrudModuleConfig and adds custom resolver support.
+ *
+ * @template Item The entity type
+ * @template CreateInput The input type for create operations
+ * @template UpdateInput The input type for update operations
+ * @template UpdateManyInput The input type for update many operations
+ * @template WhereInput The input type for query filters
+ */
+export declare class CrudModuleConfig<
+    Item,
+    CreateInput,
+    UpdateInput,
+    UpdateManyInput,
+    WhereInput
+> extends BaseCrudModuleConfig<Item> {
+    /**
+     * Registers a custom resolver class for this entity.
+     * This method changes the configuration API to allow adding specific resolver types.
+     *
+     * @template TResolver The type of the resolver class
+     * @param resolverClass The resolver class that implements custom resolvers
+     * @returns A CustomResolverConfig instance for chaining specialized resolver methods
+     */
+    withCustomResolver<TResolver extends object>(
+        resolverClass: Type<TResolver>
+    ): CustomResolverConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput, TResolver>;
+}
+
+/**
+ * Configuration class for custom resolvers.
+ * Appears after withCustomResolver is called and provides methods for mapping resolver methods.
+ *
+ * @template Item The entity type
+ * @template CreateInput The input type for create operations
+ * @template UpdateInput The input type for update operations
+ * @template UpdateManyInput The input type for update many operations
+ * @template WhereInput The input type for query filters
+ * @template TResolver The type of the resolver class
+ */
+export declare class CustomResolverConfig<
+    Item,
+    CreateInput,
+    UpdateInput,
+    UpdateManyInput,
+    WhereInput,
+    TResolver extends object
+> extends BaseCrudModuleConfig<Item> {
+    /**
+     * Add a custom query to the GraphQL schema.
+     * Maps a method on the resolver class to a GraphQL query.
+     *
+     * @template M Method name in the resolver class
+     * @param config Configuration for the query
+     * @returns The configuration builder for chaining
+     */
+    addQuery<
+        M extends keyof TResolver,
+        // Ensure M is a method that returns a Promise
+        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+    >(
+        config: {
+            name: string;
+            description?: string;
+            inputType?: Type<ParametersOfMethod<TResolver, M>>;
+            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            nullable?: boolean;
+            methodName: M & string;
+            permissions: Permission[];
+        }
+    ): this;
+
+    /**
+     * Add a custom mutation to the GraphQL schema.
+     * Maps a method on the resolver class to a GraphQL mutation.
+     *
+     * @template M Method name in the resolver class
+     * @param config Configuration for the mutation
+     * @returns The configuration builder for chaining
+     */
+    addMutation<
+        M extends keyof TResolver,
+        // Ensure M is a method that returns a Promise
+        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+    >(
+        config: {
+            name: string;
+            description?: string;
+            inputType?: Type<ParametersOfMethod<TResolver, M>>;
+            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            nullable?: boolean;
+            methodName: M & string;
+            permissions: Permission[];
+        }
+    ): this;
+
+    /**
+     * Add a field resolver to a type in the GraphQL schema.
+     * Maps a method on the resolver class to a GraphQL field resolver.
+     *
+     * @template M Method name in the resolver class
+     * @param config Configuration for the field resolver
+     * @returns The configuration builder for chaining
+     */
+    addResolveField<
+        M extends keyof TResolver,
+        // Ensure M is a method that returns a Promise
+        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+    >(
+        config: {
+            name: string;
+            description?: string;
+            inputType?: Type<ParametersOfMethod<TResolver, M>>;
+            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            nullable?: boolean;
+            methodName: M & string;
+            permissions: Permission[];
+            resolveField: string;
+        }
+    ): this;
+
+    /**
+     * Go back to the main config builder.
+     * Provides a way to return to the main CrudModuleConfig after adding custom resolvers.
+     *
+     * @returns The main CrudModuleConfig instance
+     */
+    and(): CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>;
+}
 
 /**
  * Factory class for creating and registering all CRUD modules based on provided configurations.
@@ -406,43 +476,50 @@ export declare class CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateMany
  * // In your NestJS module (e.g., app.module.ts)
  * @Module({
  * imports: [
- * // 1. Specify global providers (DataProvider, FieldSelectionProvider)
- * CrudModulesFactory
- * .using(MyPrismaDataProvider, MyPrismaFieldSelectionProvider)
- * // 2. Provide configurations for all desired entities
- * .forRoot([
- * // Configure the 'User' entity
- * CrudModulesFactory
- *  .forEntity(User)
- *  .withConfig({ // Basic CRUD setup
- *     modelName: 'user',
- *     createInput: UserCreateInput,
- *     updateInput: UserUpdateInput,
- *     updateManyInput: UserUpdateManyInput,
- *     whereInput: UserWhereInput,
- *  })
- * // Add relations (example: User has many Posts)
- *  .addRelation<Post, PostWhereInput>({
- *     fieldName: 'posts',
- *     targetModel: 'post',
- *     targetType: Post,
- *     targetWhereInput: PostWhereInput,
- *     whereNullable: true,
- *     relationField: 'authorId' // 'authorId' field on Post points to User
- *  })
- * // Add custom subscription handling (optional)
- *  .withSubscription({ filter: UserSubscriptionFilterInput, resolver: CustomUserSubscriptionResolver }),
- *
- * // Configure the 'Post' entity (example)
- * CrudModulesFactory
- *  .forEntity(Post)
- *  .withConfig({ ...postConfig... })
- *  .addOneToOneRelation<User>({ // Example: Post belongs to one User
- *     fieldName: 'author',
- *     targetModel: 'user',
- *     targetType: User,
- *     relationField: 'authorId' // 'authorId' field on Post points to User
- *  }),
+ *   // 1. Specify global providers (DataProvider, FieldSelectionProvider)
+ *   CrudModulesFactory
+ *     .using(MyPrismaDataProvider, MyPrismaFieldSelectionProvider)
+ *     // 2. Provide configurations for all desired entities
+ *     .forRoot([
+ *       // Configure the 'User' entity
+ *       CrudModulesFactory
+ *         .forEntity(User)
+ *         .withConfig({
+ *           modelName: 'user',
+ *           createInput: UserCreateInput,
+ *           updateInput: UserUpdateInput,
+ *           updateManyInput: UserUpdateManyInput,
+ *           whereInput: UserWhereInput,
+ *         })
+ *         // Add one-to-many relation
+ *         .addRelation<Post, PostWhereInput>({
+ *           fieldName: 'posts',
+ *           targetModel: 'post',
+ *           targetType: Post,
+ *           targetWhereInput: PostWhereInput,
+ *           whereNullable: true,
+ *           relationField: 'authorId'
+ *         })
+ *         // Add custom resolvers
+ *         .withCustomResolver(UserCustomResolver)
+ *           .addQuery({
+ *             name: 'findUserByEmail',
+ *             methodName: 'findByEmail',
+ *             permissions: [Permission.READ_USERS]
+ *           })
+ *           .addMutation({
+ *             name: 'changeUserPassword',
+ *             methodName: 'changePassword',
+ *             permissions: [Permission.UPDATE_USERS]
+ *           })
+ *           .and()
+ *         // Add subscription support
+ *         .withSubscription({
+ *           filter: UserSubscriptionFilterInput,
+ *           resolver: CustomUserSubscriptionResolver
+ *         }),
+ *     ]),
+ * ]})
  * export class AppModule {}
  * ```
  */
@@ -489,11 +566,9 @@ export declare class CrudModulesFactory {
          * using the `forEntity(...).withConfig(...).addRelation(...)` chain.
          * @returns The configured `DynamicModule` ready to be imported by NestJS.
          */
-        forRoot(configBuilders: CrudModuleConfig<any, any, any, any, any>[]): DynamicModule;
+        forRoot(configBuilders: BaseCrudModuleConfig<any>[]): DynamicModule;
     };
 }
-
-// --- Default Provider Implementations ---
 
 /**
  * A default implementation of `FieldSelectionProvider` that uses the `@paljs/plugins`
@@ -530,7 +605,7 @@ export declare class PrismaFieldSelectionProvider implements FieldSelectionProvi
 export declare function PrismaDataProvider(Service: Type<PrismaClient>): Type<DataProvider>;
 
 /**
- * A decorator function that marks a method's parameter as the current `PubSub` instance.'
+ * A decorator function that marks a method's parameter as the current `PubSub` instance.
  * This is useful for injecting the `PubSub` instance into your subscription resolvers
  * or other classes that need to publish events.
  * @returns A parameter decorator that can be applied to method parameters.
@@ -546,4 +621,4 @@ export declare function PrismaDataProvider(Service: Type<PrismaClient>): Type<Da
  * This decorator will inject the current `PubSub` instance into the constructor of your class.
  * You can then use this instance to publish events to subscribers.
  */
-export declare function CurrentPubSub (): ParameterDecorator
+export declare function CurrentPubSub(): ParameterDecorator;

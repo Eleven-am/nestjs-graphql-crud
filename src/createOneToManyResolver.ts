@@ -3,7 +3,13 @@
  * @description Creates a resolver for one-to-many relationships
  */
 
-import { Constructor, FindManyContract, IResolverClass, OneToManyRelationResolverConfig } from "./internalTypes";
+import {
+    Constructor,
+    FindManyContract,
+    IGenericCrudService,
+    IResolver,
+    OneToManyRelationResolverConfig
+} from "./internalTypes";
 import { Args, Info, Parent, ResolveField, Resolver } from "@nestjs/graphql";
 import { firstLetterUppercase } from "./decorators";
 import { AppAbilityType, CurrentAbility } from "@eleven-am/authorizer";
@@ -19,24 +25,21 @@ import { GraphQLResolveInfo } from "graphql";
  *
  * @param {string} modelName - The name of the Prisma model
  * @param {Type<Item>} item - The parent entity class
- * @param {Constructor<IResolverClass<Item, Target, WhereInput>>} ParentClass - The parent resolver class to extend
+ * @param {Constructor<IGenericCrudService<Item, Target, WhereInput>>} ParentClass - The parent resolver class to extend
  * @param {OneToManyRelationResolverConfig<Target, WhereInput>} config - Configuration for the one-to-many relationship
- * @returns {Constructor<IResolverClass<Item, Target, WhereInput>>} The extended resolver class
+ * @returns {Constructor<IGenericCrudService<Item, Target, WhereInput>>} The extended resolver class
  */
 export function createOneToManyResolver<Item, Target, WhereInput>(
     modelName: string,
     item: Type<Item>,
-    ParentClass: Constructor<IResolverClass<Item, Target, WhereInput>>,
-    config: OneToManyRelationResolverConfig<Target, WhereInput>
-): Constructor<IResolverClass<Item, Target, WhereInput>> {
+    config: OneToManyRelationResolverConfig<Target, WhereInput>,
+    ParentClass: Type<IResolver<any, any, any, any, any, any, any, any>>
+): Type<IResolver<any, any, any, any, any, any, any, any>> {
     const resolveMethodName = `resolve${firstLetterUppercase(config.fieldName)}`;
 
-    // Create a resolver with where input parameter if targetWhereInput is provided
     if (config.targetWhereInput) {
-        // @ts-ignore
         @Resolver(() => item)
-        // @ts-ignore
-        class OneToManyResolver extends ParentClass<Target> {
+        class OneToManyResolver extends ParentClass {
             /**
              * Resolver method for a one-to-many relationship field with filtering
              *
@@ -56,28 +59,20 @@ export function createOneToManyResolver<Item, Target, WhereInput>(
                     nullable: config.whereNullable
                 }) where?: FindManyContract<WhereInput>
             ): Promise<Target[]> {
-                // @ts-ignore
-                // Convert GraphQL field selection to the appropriate format for data provider
-                const select = this.fieldSelectionProvider.parseSelection<Target>(info);
-
-                // @ts-ignore
-                return this.resolveOneToMany(ability, config.targetModel, config.relationField, (item as any).id, select, where);
+                const select = this.service.fieldSelectionProvider.parseSelection<Target>(info);
+                return this.service.resolveOneToMany(ability, config.targetModel, config.relationField, (item as any).id, select, where);
             }
         }
 
-        // Give the dynamic class a descriptive name for easier debugging
         Object.defineProperty(OneToManyResolver, 'name', {
             value: `${firstLetterUppercase(modelName)}RelationsResolver`,
             writable: false,
         });
 
-        return OneToManyResolver as Constructor<IResolverClass<Item, Target, WhereInput>>;
+        return OneToManyResolver as Type<IResolver<any, any, any, any, any, any, any, any>>;
     } else {
-        // Create a resolver without where input parameter if targetWhereInput is not provided
-        // @ts-ignore
         @Resolver(() => item)
-        // @ts-ignore
-        class OneToManyResolver extends ParentClass<Target> {
+        class OneToManyResolver extends ParentClass {
             /**
              * Resolver method for a one-to-many relationship field without filtering
              *
@@ -92,21 +87,16 @@ export function createOneToManyResolver<Item, Target, WhereInput>(
                 @Info() info: GraphQLResolveInfo,
                 @CurrentAbility.HTTP() ability: AppAbilityType,
             ): Promise<Target[]> {
-                // @ts-ignore
-                // Convert GraphQL field selection to the appropriate format for data provider
-                const select = this.fieldSelectionProvider.parseSelection<Target>(info);
-
-                // @ts-ignore
-                return this.resolveOneToMany(ability, config.targetModel, config.relationField, (item as any).id, select, undefined);
+                const select = this.service.fieldSelectionProvider.parseSelection<Target>(info);
+                return this.service.resolveOneToMany(ability, config.targetModel, config.relationField, (item as any).id, select, undefined);
             }
         }
 
-        // Give the dynamic class a descriptive name for easier debugging
         Object.defineProperty(OneToManyResolver, 'name', {
             value: `${firstLetterUppercase(modelName)}RelationsResolver`,
             writable: false,
         });
 
-        return OneToManyResolver as Constructor<IResolverClass<Item, Target, WhereInput>>;
+        return OneToManyResolver as Type<IResolver<any, any, any, any, any, any, any, any>>;
     }
 }

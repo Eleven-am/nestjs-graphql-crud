@@ -47,46 +47,39 @@ export function createBaseCrudModule <
     const serviceToken = Symbol(`${options.modelName}Service`);
     const subscriptionResolversToken = Symbol(`${options.modelName}SubscriptionResolvers`);
 
-    // Create the service
     const BaseCrudService = createBaseCrudService(
         options.modelName,
         PUB_SUB_SYMBOL,
-        dataProviderToken
+        dataProviderToken,
+        fieldSelectionProviderToken,
     );
 
-    // Create the resolver
     const BaseCrudResolver = createBaseCrudResolver(
         PUB_SUB_SYMBOL,
         serviceToken,
         subscriptionResolversToken,
-        fieldSelectionProviderToken,
         SubscriptionFilter,
         options
     );
 
-    // Create the subscription resolver
-    const ResolverService = createSubscriptionResolver(
+    const SubscriptionResolver = createSubscriptionResolver(
         options.modelName,
         dataProviderToken,
         options.subscriptionResolver?.resolver
     );
 
-    // Create providers
     const BaseCrudServiceProvider: Provider = { provide: serviceToken, useClass: BaseCrudService };
-    const SubscriptionResolverProvider: Provider = { provide: subscriptionResolversToken, useClass: ResolverService };
+    const SubscriptionResolverProvider: Provider = { provide: subscriptionResolversToken, useClass: SubscriptionResolver };
 
-    // Create the relation resolver
-    const RelationResolver = createCombinedRelationResolverClass(
+    const CrudResolver = createCombinedRelationResolverClass(
         options.modelName,
         options.entity,
-        dataProviderToken,
-        fieldSelectionProviderToken,
-        options.relationResolvers || []
+        BaseCrudResolver,
+        options.resolvers
     );
 
-    const CustomResolverFactories = (options.relationResolvers ?? [])
-        .filter(config => 'factoryClass' in config)
-        .map(config => config.factoryClass);
+    const CustomResolverFactories = options.resolvers?.customResolvers?
+        [options.resolvers.customResolvers.factoryClass] : [];
 
     class BaseCrudModule {
         /**
@@ -102,8 +95,7 @@ export function createBaseCrudModule <
                 exports: options.exports,
                 controllers: options.controllers,
                 providers: [
-                    BaseCrudResolver,
-                    RelationResolver,
+                    CrudResolver,
                     BaseCrudServiceProvider,
                     SubscriptionResolverProvider,
                     ...CustomResolverFactories,
@@ -113,7 +105,6 @@ export function createBaseCrudModule <
         }
     }
 
-    // Give the dynamic class a descriptive name for easier debugging
     Object.defineProperty(BaseCrudModule, 'name', {
         value: `${firstLetterUppercase(options.modelName)}Module`,
         writable: false,

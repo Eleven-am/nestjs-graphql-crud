@@ -4,14 +4,30 @@
  */
 
 import { Type, ModuleMetadata } from "@nestjs/common";
-import { AppAbilityType } from "@eleven-am/authorizer";
+import { AppAbilityType, Permission } from "@eleven-am/authorizer";
 import { Field, InputType } from "@nestjs/graphql";
 import { GraphQLResolveInfo } from "graphql";
+
+export type Getter<T> = () => T;
+
+/**
+ * Type helper to extract parameter types from a method
+ */
+export type ParametersOfMethod<T, M extends keyof T> = T[M] extends (...args: any[]) => any
+    ? Parameters<T[M]> extends [infer Argument, AppAbilityType, any] ? Argument : never
+    : never;
+
+/**
+ * Type helper to extract a return type from a method
+ */
+export type ReturnTypeOfMethod<T, M extends keyof T> = T[M] extends (...args: any[]) => any
+    ? ReturnType<T[M]>
+    : never;
 
 /**
  * Enum for subscription action types
  */
-export enum SubscriptionAction {
+export enum CrudAction {
     /** Entity was created */
     CREATE = "CREATE",
     /** Entity was updated */
@@ -170,6 +186,27 @@ export interface DataProvider {
     ): Promise<EntityType[]>;
 }
 
+export interface CustomResolver<TResolver, M extends keyof TResolver> {
+    /** The name of the resolver method */
+    name: string;
+    /** The description of the resolver */
+    description?: string;
+    /** The args for the resolver */
+    inputType: Type<ParametersOfMethod<TResolver, M>>;
+    /** The return type of the resolver */
+    outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+    /** Whether the input type is nullable */
+    nullable?: boolean;
+    /** The name of the method in the resolver class */
+    methodName: M & string;
+    /** The permissions required to access this resolver */
+    permissions: Permission[];
+    /** Whether this resolver is a mutation */
+    isMutation: boolean;
+    /** Whether to resolve an additional field */
+    resolveField?: string;
+}
+
 /**
  * Interface for subscription resolver
  * This focuses only on subscription filtering and resolution
@@ -245,7 +282,7 @@ interface BaseRelationResolverOptions<Target, WhereInput> {
  */
 export interface OneToManyRelationResolverConfig<Target, WhereInput> extends BaseRelationResolverOptions<Target, WhereInput> {
     /** Field name in the target model that references the parent */
-    relationField: keyof Target;
+    relationField: keyof Target & string;
 }
 
 /**
@@ -264,25 +301,6 @@ export interface OneToOneRelationResolverConfig<Item, Target> extends Omit<
     oneToOneRelation: true
 }
 
-/**
- * Interface for custom relation resolver implementation
- *
- * @template Item - The parent entity type
- * @template Target - The related entity type
- * @template WhereInput - The input type for query filters
- */
-export interface CustomRelationResolver<Item, Target, WhereInput> {
-    /**
-     * Resolve method for the relation
-     *
-     * @param {AppAbilityType} ability - The user's ability for authorization
-     * @param {Item} item - The parent entity instance
-     * @param {any} context - Additional context
-     * @param {FindManyContract<WhereInput>} [args] - Optional filter arguments
-     * @returns {Promise<Target | Target[]>} The resolved relation(s)
-     */
-    resolve(ability: AppAbilityType, item: Item, context: any, args?: FindManyContract<WhereInput>): Promise<Target | Target[]>;
-}
 
 /**
  * Interface for custom resolver configuration
@@ -291,12 +309,15 @@ export interface CustomRelationResolver<Item, Target, WhereInput> {
  * @template Target - The related entity type
  * @template WhereInput - The input type for query filters
  */
-export interface CustomResolverConfig<Item, Target, WhereInput> extends BaseRelationResolverOptions<Target, WhereInput> {
-    /** Factory class that implements the custom resolver */
-    factoryClass: Type<CustomRelationResolver<Item, Target, WhereInput>>;
-    /** Whether the relation returns multiple entities */
-    isMany?: boolean;
+export interface CustomResolverConfig<TResolver extends object> {
+    /** The factory class for the custom resolver */
+    factoryClass: Type<TResolver>;
+    /** The definition of custom resolvers */
+    customResolvers: CustomResolver<TResolver, keyof TResolver>[];
 }
+
+export type RelationResolverConfig<Item, Target, WhereInput> = OneToManyRelationResolverConfig<Target, WhereInput>
+    | OneToOneRelationResolverConfig<Item, Target>;
 
 /**
  * Union type of all relation resolver configurations
@@ -305,10 +326,10 @@ export interface CustomResolverConfig<Item, Target, WhereInput> extends BaseRela
  * @template Target - The related entity type
  * @template WhereInput - The input type for query filters
  */
-export type RelationResolverConfig<Item, Target, WhereInput> =
-    | CustomResolverConfig<Item, Target, WhereInput>
-    | OneToManyRelationResolverConfig<Target, WhereInput>
-    | OneToOneRelationResolverConfig<Item, Target>;
+export interface ResolverConfig<Item, Target, WhereInput> {
+    relationResolvers: RelationResolverConfig<Item, Target, WhereInput>[];
+    customResolvers?: CustomResolverConfig<object>;
+}
 
 /**
  * Interface for CRUD module options
@@ -333,7 +354,7 @@ export interface CrudModuleOptions<
     WhereInput
 > {
     /** Optional relation resolvers */
-    relationResolvers?: RelationResolverConfig<Item, unknown, unknown>[];
+    resolvers?: ResolverConfig<Item, unknown, unknown>;
     /** Optional subscription resolver configuration */
     subscriptionResolver?: {
         filter: Type,
@@ -383,7 +404,13 @@ export interface IGenericCrudService<
     UpdateInput,
     UpdateManyInput,
     WhereInput,
+    Target,
+    TargetWhereInput,
+    TResolver extends object,
 > {
+    /** The means of selecting fields in the GraphQL schema */
+    fieldSelectionProvider: FieldSelectionProvider
+
     /**
      * Create a new entity
      *
@@ -454,20 +481,6 @@ export interface IGenericCrudService<
      * @returns {Promise<Item[]>} Array of deleted entities
      */
     deleteMany(ability: AppAbilityType, where: WhereInput, select: any): Promise<Item[]>;
-}
-
-/**
- * Interface for resolver class that handles relations
- *
- * @template Item - The parent entity type
- * @template Target - The related entity type
- * @template WhereInput - The input type for query filters
- */
-export interface IResolverClass<Item, Target, WhereInput> {
-    /**
-     * field selection provider instance
-     */
-    fieldSelectionProvider: FieldSelectionProvider;
 
     /**
      * Resolve a one-to-one relation
@@ -491,7 +504,7 @@ export interface IResolverClass<Item, Target, WhereInput> {
      * @param {FindManyContract<WhereInput>} [where] - Optional filter criteria
      * @returns {Promise<Target[]>} Array of related entities
      */
-    resolveOneToMany(ability: AppAbilityType, targetModel: string, foreignKey: string, itemId: string, select: any, where?: FindManyContract<WhereInput>): Promise<Target[]>;
+    resolveOneToMany(ability: AppAbilityType, targetModel: string, foreignKey: string, itemId: string, select: any, where?: FindManyContract<TargetWhereInput>): Promise<Target[]>;
 
     /**
      * Get a custom relation resolver factory instance
@@ -500,8 +513,40 @@ export interface IResolverClass<Item, Target, WhereInput> {
      * @param {Type<Class>} constructor - The factory class
      * @returns {Class} The factory instance
      */
-    getFactory<Class extends CustomRelationResolver<Item, Target, WhereInput>>(constructor: Type<Class>): Class;
+    getFactory<TResolver>(constructor: Type<TResolver>): TResolver;
+
+    /**
+     * Publish changes to subscribers
+     *
+     * @param {CrudAction} action - The action that triggered the event
+     * @param {any} data - The data to publish
+     * @returns {Promise<void>} A promise that resolves when the publish is complete
+     */
+    publish(action: CrudAction, data: any): Promise<void>;
 }
+
+export interface IResolver<
+    Item,
+    CreateInput,
+    UpdateInput,
+    UpdateManyInput,
+    WhereInput,
+    Target,
+    TargetWhereInput,
+    TResolver extends object,
+> {
+    service: IGenericCrudService<
+        Item,
+        CreateInput,
+        UpdateInput,
+        UpdateManyInput,
+        WhereInput,
+        Target,
+        TargetWhereInput,
+        TResolver
+    >
+}
+
 
 /**
  * Input type for subscription filtering by IDs

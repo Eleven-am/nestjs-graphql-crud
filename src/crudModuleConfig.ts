@@ -5,17 +5,20 @@
 
 import {
     CrudModuleOptions,
-    CustomResolverConfig,
+    CustomResolver,
+    Getter,
     OneToManyRelationResolverConfig,
     OneToOneRelationResolverConfig,
-    SubscriptionResolver,
+    ParametersOfMethod,
+    ReturnTypeOfMethod,
+    SubscriptionResolver
 } from "./internalTypes";
-import { DynamicModule, ForwardReference, Provider, Type } from "@nestjs/common";
-import { WillAuthorize } from "@eleven-am/authorizer";
-import { Abstract } from "@nestjs/common/interfaces/abstract.interface";
+import {DynamicModule, ForwardReference, Provider, Type} from "@nestjs/common";
+import {Permission} from "@eleven-am/authorizer";
+import {Abstract} from "@nestjs/common/interfaces/abstract.interface";
 
 /**
- * Configuration builder for CRUD modules with a fluent API
+ * Base Configuration builder for CRUD modules with a fluent API
  *
  * @template Item - The entity type this CRUD module will manage
  * @template CreateInput - The input type for create operations
@@ -23,12 +26,12 @@ import { Abstract } from "@nestjs/common/interfaces/abstract.interface";
  * @template UpdateManyInput - The input type for update many operations
  * @template WhereInput - The input type for query filters
  */
-export class CrudModuleConfig<
+export class BaseCrudModuleConfig<
     Item,
     CreateInput,
     UpdateInput,
     UpdateManyInput,
-    WhereInput,
+    WhereInput
 > {
     /**
      * Create a new CRUD module configuration
@@ -43,7 +46,14 @@ export class CrudModuleConfig<
             UpdateManyInput,
             WhereInput
         >
-    ) {}
+    ) {
+        // Initialize resolvers structure if not exists
+        if (!this.options.resolvers) {
+            this.options.resolvers = {
+                relationResolvers: []
+            };
+        }
+    }
 
     /**
      * Adds a one-to-many relation resolver to the module
@@ -57,59 +67,13 @@ export class CrudModuleConfig<
     addRelation<Target, TargetWhereInput>(
         config: OneToManyRelationResolverConfig<Target, TargetWhereInput>
     ): this {
-        if (!this.options.relationResolvers) {
-            this.options.relationResolvers = [];
+        if (!this.options.resolvers) {
+            this.options.resolvers = {
+                relationResolvers: []
+            };
         }
 
-        this.options.relationResolvers.push(config as any);
-        return this;
-    }
-
-    /**
-     * Adds a custom relation resolver to the module (returns a single entity)
-     *
-     * @template Target - The related entity type
-     * @template TargetWhereInput - The input type for filtering related entities
-     *
-     * @param {Omit<CustomResolverConfig<Item, Target, TargetWhereInput>, 'isMany'>} config - Configuration for the custom relation resolver
-     * @returns {this} The configuration builder (for method chaining)
-     */
-    addCustomRelation<Target, TargetWhereInput>(
-        config: Omit<CustomResolverConfig<Item, Target, TargetWhereInput>, 'isMany'>
-    ): this {
-        if (!this.options.relationResolvers) {
-            this.options.relationResolvers = [];
-        }
-
-        this.options.relationResolvers.push({
-            ...config,
-            isMany: false
-        } as any);
-        return this;
-    }
-
-    /**
-     * Adds a custom relation resolver that returns an array of entities
-     *
-     * @template Target - The related entity type
-     * @template TargetWhereInput - The input type for filtering related entities
-     *
-     * @param {Omit<CustomResolverConfig<Item, Target[], TargetWhereInput>, 'isMany' | 'targetType'> & { targetType: Type<Target> }} config - Configuration for the custom array relation resolver
-     * @returns {this} The configuration builder (for method chaining)
-     */
-    addCustomArrayRelation<Target, TargetWhereInput>(
-        config: Omit<CustomResolverConfig<Item, Target[], TargetWhereInput>, 'isMany' | 'targetType'> & {
-            targetType: Type<Target>;
-        }
-    ): this {
-        if (!this.options.relationResolvers) {
-            this.options.relationResolvers = [];
-        }
-
-        this.options.relationResolvers.push({
-            ...config,
-            isMany: true
-        } as any);
+        this.options.resolvers.relationResolvers.push(config as any);
         return this;
     }
 
@@ -124,11 +88,13 @@ export class CrudModuleConfig<
     addOneToOneRelation<Target>(
         config: Omit<OneToOneRelationResolverConfig<Item, Target>, 'oneToOneRelation'>
     ): this {
-        if (!this.options.relationResolvers) {
-            this.options.relationResolvers = [];
+        if (!this.options.resolvers) {
+            this.options.resolvers = {
+                relationResolvers: []
+            };
         }
 
-        this.options.relationResolvers.push({
+        this.options.resolvers.relationResolvers.push({
             ...config,
             oneToOneRelation: true
         } as any);
@@ -149,17 +115,6 @@ export class CrudModuleConfig<
     }): this {
         this.options.subscriptionResolver = config;
         return this;
-    }
-
-    /**
-     * Adds custom authorizers to the module
-     *
-     * @template WillAuthorize - The authorizer type
-     *
-     * @param {Type<WillAuthorize>[]} authorizers - The authorizer class
-     */
-    withAuthorization(...authorizers: Type<WillAuthorize>[]) {
-       return this.withProviders(...authorizers);
     }
 
     /**
@@ -193,10 +148,12 @@ export class CrudModuleConfig<
     }
 
     /**
-     * Adds imports to the module. This is useful for importing other modules that provide additional functionalities.
-     * @param imports An array of NestJS modules to be imported into this module.
+     * Adds imports to the module
+     *
+     * @param {...(Type | DynamicModule | Promise<DynamicModule> | ForwardReference)[]} imports - The modules to import
+     * @returns {this} The configuration builder (for method chaining)
      */
-    import(...imports: (Type<any> | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this {
+    import(...imports: (Type | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this {
         if (!this.options.imports) {
             this.options.imports = [];
         }
@@ -206,15 +163,235 @@ export class CrudModuleConfig<
     }
 
     /**
-     * Adds exports to the module. This is useful for exporting providers or modules for use in other modules.
-     * @param exports An array of NestJS providers or modules to be exported from this module.
+     * Adds exports to the module
+     *
+     * @param {...(DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]} exports - The providers or modules to export
+     * @returns {this} The configuration builder (for method chaining)
      */
-    export (...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this{
+    export(...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this {
         if (!this.options.exports) {
             this.options.exports = [];
         }
 
         this.options.exports.push(...exports);
         return this;
+    }
+}
+
+/**
+ * Configuration builder for CRUD modules with a fluent API
+ *
+ * @template Item - The entity type this CRUD module will manage
+ * @template CreateInput - The input type for create operations
+ * @template UpdateInput - The input type for update operations
+ * @template UpdateManyInput - The input type for update many operations
+ * @template WhereInput - The input type for query filters
+ */
+export class CrudModuleConfig<
+    Item,
+    CreateInput,
+    UpdateInput,
+    UpdateManyInput,
+    WhereInput
+> extends BaseCrudModuleConfig<
+    Item,
+    CreateInput,
+    UpdateInput,
+    UpdateManyInput,
+    WhereInput
+> {
+    /**
+     * Registers a custom resolver class for this entity
+     *
+     * @template TResolver The type of the resolver class
+     * @param {Type<TResolver>} resolverClass The resolver class that implements custom resolvers
+     * @returns {CustomResolverConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput, TResolver>} A CustomResolverConfig instance for chaining specialized resolver methods
+     */
+    withCustomResolver<TResolver extends object>(
+        resolverClass: Type<TResolver>
+    ): CustomResolverConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput, TResolver> {
+        if (!this.options.resolvers) {
+            this.options.resolvers = {
+                relationResolvers: []
+            };
+        }
+
+        // Initialize custom resolvers if not exists
+        if (!this.options.resolvers.customResolvers) {
+            this.options.resolvers.customResolvers = {
+                factoryClass: resolverClass,
+                customResolvers: []
+            };
+        } else {
+            this.options.resolvers.customResolvers.factoryClass = resolverClass;
+        }
+
+        // Add resolver class to providers
+        if (!this.options.providers) {
+            this.options.providers = [];
+        }
+        this.options.providers.push(resolverClass);
+
+        return new CustomResolverConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput, TResolver>(this.options);
+    }
+}
+
+/**
+ * Configuration class for custom resolvers that appears after withCustomResolver is called
+ *
+ * @template Item - The entity type this CRUD module will manage
+ * @template CreateInput - The input type for create operations
+ * @template UpdateInput - The input type for update operations
+ * @template UpdateManyInput - The input type for update many operations
+ * @template WhereInput - The input type for query filters
+ * @template TResolver - The type of the resolver class
+ */
+export class CustomResolverConfig<
+    Item,
+    CreateInput,
+    UpdateInput,
+    UpdateManyInput,
+    WhereInput,
+    TResolver extends object
+> extends BaseCrudModuleConfig<
+    Item,
+    CreateInput,
+    UpdateInput,
+    UpdateManyInput,
+    WhereInput
+> {
+    /**
+     * Add a custom query to the GraphQL schema
+     *
+     * @template M Method name in the resolver class
+     * @param {Object} config - Configuration for the query
+     * @returns {this} The configuration builder (for method chaining)
+     */
+    addQuery<
+        M extends keyof TResolver,
+        // Ensure M is a method that returns a Promise
+        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+    >(
+        config: {
+            name: string;
+            description?: string;
+            inputType?: Type<ParametersOfMethod<TResolver, M>>;
+            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            nullable?: boolean;
+            methodName: M & string;
+            permissions: Permission[];
+        }
+    ): this {
+        const customConfig: CustomResolver<TResolver, M> = {
+            ...config,
+            inputType: config.inputType || null as any,
+            outputType: config.outputType || (() => null as any),
+            isMutation: false,
+        };
+
+        if (!this.options.resolvers) {
+            throw new Error('Custom resolver class not registered');
+        }
+
+        if (!this.options.resolvers.customResolvers) {
+            throw new Error('Custom resolver class not registered');
+        }
+
+        this.options.resolvers.customResolvers.customResolvers.push(customConfig as any);
+        return this;
+    }
+
+    /**
+     * Add a custom mutation to the GraphQL schema
+     *
+     * @template M Method name in the resolver class
+     * @param {Object} config - Configuration for the mutation
+     * @returns {this} The configuration builder (for method chaining)
+     */
+    addMutation<
+        M extends keyof TResolver,
+        // Ensure M is a method that returns a Promise
+        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+    >(
+        config: {
+            name: string;
+            description?: string;
+            inputType?: Type<ParametersOfMethod<TResolver, M>>;
+            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            nullable?: boolean;
+            methodName: M & string;
+            permissions: Permission[];
+        }
+    ): this {
+        const customConfig: CustomResolver<TResolver, M> = {
+            ...config,
+            inputType: config.inputType || null as any,
+            outputType: config.outputType || (() => null as any),
+            isMutation: true,
+        };
+
+        if (!this.options.resolvers) {
+            throw new Error('Custom resolver class not registered');
+        }
+
+        if (!this.options.resolvers.customResolvers) {
+            throw new Error('Custom resolver class not registered');
+        }
+
+        this.options.resolvers.customResolvers.customResolvers.push(customConfig as any);
+        return this;
+    }
+
+    /**
+     * Add a field resolver to a type in the GraphQL schema
+     *
+     * @template M Method name in the resolver class
+     * @param {Object} config - Configuration for the field resolver
+     * @returns {this} The configuration builder (for method chaining)
+     */
+    addResolveField<
+        M extends keyof TResolver,
+        // Ensure M is a method that returns a Promise
+        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+    >(
+        config: {
+            name: string;
+            description?: string;
+            inputType?: Type<ParametersOfMethod<TResolver, M>>;
+            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            nullable?: boolean;
+            methodName: M & string;
+            permissions: Permission[];
+            resolveField: string;
+        }
+    ): this {
+        const customConfig: CustomResolver<TResolver, M> = {
+            ...config,
+            inputType: config.inputType || null as any,
+            outputType: config.outputType || (() => null as any),
+            isMutation: false,
+            resolveField: config.resolveField,
+        };
+
+        if (!this.options.resolvers) {
+            throw new Error('Custom resolver class not registered');
+        }
+
+
+        if (!this.options.resolvers.customResolvers) {
+            throw new Error('Custom resolver class not registered');
+        }
+
+        this.options.resolvers.customResolvers.customResolvers.push(customConfig as any);
+        return this;
+    }
+
+    /**
+     * Go back to the main config builder
+     *
+     * @returns {CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>} The main configuration builder
+     */
+    and(): CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput> {
+        return new CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>(this.options);
     }
 }

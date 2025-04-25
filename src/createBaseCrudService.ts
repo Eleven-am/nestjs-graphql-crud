@@ -3,10 +3,12 @@
  * @description Creates a service class that implements CRUD operations using a data provider
  */
 
-import { Inject, Injectable, Type } from "@nestjs/common";
-import { DataProvider, FindManyContract, IGenericCrudService, SubscriptionAction } from "./internalTypes";
-import { firstLetterUppercase } from "./decorators";
-import { PubSub } from "graphql-subscriptions";
+import {Inject, Injectable, Type} from "@nestjs/common";
+import {CrudAction, DataProvider, FieldSelectionProvider, FindManyContract, IGenericCrudService} from "./internalTypes";
+import {firstLetterUppercase} from "./decorators";
+import {PubSub} from "graphql-subscriptions";
+import {AppAbilityType} from "@eleven-am/authorizer";
+import {ModuleRef} from "@nestjs/core";
 
 /**
  * Creates a service class with standard CRUD operations for a specific model
@@ -16,23 +18,31 @@ import { PubSub } from "graphql-subscriptions";
  * @template UpdateInput - The input type for update operations
  * @template UpdateManyInput - The input type for update many operations
  * @template WhereInput - The input type for query filters
+ * @template Target - The related entity type for one-to-many relations
+ * @template TargetWhereInput - The input type for query filters for the related entity
+ * @template TResolver - The type of the resolver class
  *
  * @param {string} modelName - The name of the model
  * @param {symbol} pubSubToken - Symbol for the PubSub token used for subscriptions
  * @param {symbol} dataProviderToken - Symbol for the data provider token
+ * @param {symbol} fieldSelectionToken - Symbol for the field selection provider token
  * @returns {Type} A dynamically generated service class with CRUD operations
  */
-export function createBaseCrudService <
+export function createBaseCrudService<
     Item,
     CreateInput,
     UpdateInput,
     UpdateManyInput,
-    WhereInput
+    WhereInput,
+    Target,
+    TargetWhereInput,
+    TResolver extends object,
 >
 (
     modelName: string,
     pubSubToken: symbol,
     dataProviderToken: symbol,
+    fieldSelectionToken: symbol,
 ): Type {
     @Injectable()
     class BaseCrudService implements IGenericCrudService<
@@ -40,12 +50,18 @@ export function createBaseCrudService <
         CreateInput,
         UpdateInput,
         UpdateManyInput,
-        WhereInput
-    >{
+        WhereInput,
+        Target,
+        TargetWhereInput,
+        TResolver
+    > {
         constructor(
+            private readonly moduleRef: ModuleRef,
             @Inject(pubSubToken) private readonly pubSub: PubSub,
             @Inject(dataProviderToken) private readonly dataProvider: DataProvider,
-        ) {}
+            @Inject(fieldSelectionToken) readonly fieldSelectionProvider: FieldSelectionProvider
+        ) {
+        }
 
         /**
          * Create a new entity
@@ -60,7 +76,7 @@ export function createBaseCrudService <
                 data,
                 select
             );
-            await this.publish(SubscriptionAction.CREATE, res);
+            await this.publish(CrudAction.CREATE, res);
             return res;
         }
 
@@ -79,7 +95,7 @@ export function createBaseCrudService <
                 whereId,
                 select
             );
-            await this.publish(SubscriptionAction.DELETE, res);
+            await this.publish(CrudAction.DELETE, res);
             return res;
         }
 
@@ -95,7 +111,7 @@ export function createBaseCrudService <
             const gotDeleted = await this.dataProvider.findMany<Item, WhereInput>(
                 modelName,
                 ability,
-                { where },
+                {where},
                 select
             );
 
@@ -106,7 +122,7 @@ export function createBaseCrudService <
                 select
             );
 
-            await this.publish(SubscriptionAction.DELETE_MANY, gotDeleted);
+            await this.publish(CrudAction.DELETE_MANY, gotDeleted);
             return gotDeleted;
         }
 
@@ -165,7 +181,7 @@ export function createBaseCrudService <
                 select
             );
 
-            await this.publish(SubscriptionAction.UPDATE, res);
+            await this.publish(CrudAction.UPDATE, res);
             return res;
         }
 
@@ -182,7 +198,7 @@ export function createBaseCrudService <
             const gotUpdated = await this.dataProvider.findMany<Item, WhereInput>(
                 modelName,
                 ability,
-                { where },
+                {where},
                 select
             );
 
@@ -194,19 +210,56 @@ export function createBaseCrudService <
                 select
             );
 
-            await this.publish(SubscriptionAction.UPDATE_MANY, gotUpdated);
+            await this.publish(CrudAction.UPDATE_MANY, gotUpdated);
             return gotUpdated;
+        }
+
+        /**
+         * Resolve a one-to-one relation
+         *
+         * @param {any} ability - The user's ability for authorization
+         * @param {string} targetModel - The name of the target model
+         * @param {string} itemId - The ID of the related item
+         * @param {any} select - Fields to select in the result
+         * @returns {Promise<unknown>} The related entity or null
+         */
+        resolveOneToOne(ability: AppAbilityType, targetModel: string, itemId: string, select: any): Promise<Target | null> {
+            return this.dataProvider.findOne<Target, { id: string }>(
+                targetModel,
+                ability,
+                {id: itemId} as any,
+                select
+            );
+        }
+
+        resolveOneToMany(ability: AppAbilityType, targetModel: string, foreignKey: string, itemId: string, select: any, where?: FindManyContract<TargetWhereInput> | undefined): Promise<Target[]> {
+            return this.dataProvider.findMany<Target, WhereInput>(
+                targetModel,
+                ability,
+                {
+                    where: {
+                        ...((where?.where || {}) as WhereInput),
+                        [foreignKey]: itemId
+                    } as WhereInput,
+                    pagination: where?.pagination
+                },
+                select
+            );
+        }
+
+        getFactory<TResolver>(constructor: Type<TResolver>): TResolver {
+            return this.moduleRef.get(constructor, {strict: false});
         }
 
         /**
          * Publish changes to subscribers
          *
          * @private
-         * @param {SubscriptionAction} action - The type of action that occurred
+         * @param {CrudAction} action - The type of action that occurred
          * @param {any} data - The data to publish
          * @returns {Promise<void>}
          */
-        private async publish(action: SubscriptionAction, data: any) {
+        async publish(action: CrudAction, data: any): Promise<void> {
             const arrayData = Array.isArray(data) ? data : [data];
 
             await this.pubSub.publish(modelName, {
@@ -216,7 +269,6 @@ export function createBaseCrudService <
         }
     }
 
-    // Give the dynamic class a descriptive name for easier debugging
     Object.defineProperty(BaseCrudService, 'name', {
         value: `${firstLetterUppercase(modelName)}Service`,
         writable: false,

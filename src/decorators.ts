@@ -51,7 +51,7 @@ const findManyArgsCache = new Map<string, Type<FindManyContract<any>>>();
 export function createFindMany<T> (whereInput: Type<T>, modelName: string): Type<FindManyContract<T>> {
     const className = `${firstLetterUppercase(modelName)}FindManyArgs`;
 
-    // Return cached class if it exists
+    // Return a cached class if it exists
     if (findManyArgsCache.has(className)) {
         return findManyArgsCache.get(className) as Type<FindManyContract<T>>;
     }
