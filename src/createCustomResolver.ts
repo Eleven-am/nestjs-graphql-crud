@@ -21,7 +21,7 @@ export function createCustomResolver<
     if (config.isMutation) {
         @Resolver(() => item)
         class CustomResolverImpl extends ParentClass {
-            @Mutation(() => config.isList ? [config.outputType]: config.outputType, {
+            @Mutation(config.outputType, {
                 description: config.description,
                 nullable: config.nullable,
             })
@@ -42,7 +42,7 @@ export function createCustomResolver<
     } else if (config.resolveField) {
         @Resolver(() => item)
         class CustomResolverImpl extends ParentClass {
-            @ResolveField(config.resolveField, () => config.isList ? [config.outputType]: config.outputType, {
+            @ResolveField(config.resolveField, config.outputType, {
                 description: config.description,
                 nullable: config.nullable,
             })
@@ -64,7 +64,7 @@ export function createCustomResolver<
     } else {
         @Resolver(() => item)
         class CustomResolverImpl extends ParentClass {
-            @Query(() => config.isList ? [config.outputType]: config.outputType, {
+            @Query(config.outputType, {
                 name: config.name,
                 nullable: config.nullable,
             })

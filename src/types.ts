@@ -7,6 +7,12 @@ import {PrismaClient} from '@prisma/client';
 import {Abstract} from "@nestjs/common/interfaces/abstract.interface";
 
 /**
+ * A function type that returns the value when called.
+ * Used for lazy evaluation of types to avoid circular dependencies.
+ */
+export type Getter<T> = () => T;
+
+/**
  * Type helper to extract parameter types from a method.
  * Specifically designed to extract the first argument from methods with the
  * signature (arg1: T, ability: AppAbilityType, select: any).
@@ -31,7 +37,7 @@ export type ReturnTypeOfMethod<Target, Method extends keyof Target> = Target[Met
  *
  * @template WhereInput - The type of the where input
  */
-export interface FindManyContract<WhereInput> {
+export declare class FindManyContract<WhereInput> {
     /** Filter criteria */
     where?: WhereInput;
     /** Pagination parameters */
@@ -419,10 +425,9 @@ export declare class CustomResolverConfig<
     >(
         config: {
             name: string;
-            isList?: boolean;
             description?: string;
             inputType: Type<ParametersOfMethod<TResolver, M>>;
-            outputType: Type,
+            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -444,10 +449,9 @@ export declare class CustomResolverConfig<
     >(
         config: {
             name: string;
-            isList?: boolean;
             description?: string;
             inputType: Type<ParametersOfMethod<TResolver, M>>;
-            outputType: Type;
+            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -469,10 +473,9 @@ export declare class CustomResolverConfig<
     >(
         config: {
             name: string;
-            isList?: boolean;
             description?: string;
             inputType: Type<ParametersOfResolveMethod<Item, TResolver, M>>;
-            outputType: Type;
+            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -644,3 +647,13 @@ export declare function PrismaDataProvider(Service: Type<PrismaClient>): Type<Da
  * You can then use this instance to publish events to subscribers.
  */
 export declare function CurrentPubSub(): ParameterDecorator;
+
+/**
+ * A factory function that creates a `FindManyContract` type for a specific entity type.
+ * This is useful for defining the structure of the input arguments for the `findMany`
+ * method in your data provider.
+ * @param whereInput The type of the where input for filtering results.
+ * @param modelName The logical name or identifier of the data model (e.g., Prisma model name).
+ * @returns A `Type<FindManyContract<T>>` representing the structure of the find many contract.
+ */
+export declare function createFindMany<T> (whereInput: Type<T>, modelName: string): Type<FindManyContract<T>>;
