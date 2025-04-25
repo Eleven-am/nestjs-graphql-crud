@@ -21,8 +21,9 @@ export function createCustomResolver<
     if (config.isMutation) {
         @Resolver(() => item)
         class CustomResolverImpl extends ParentClass {
-            @Mutation(() => item, {
+            @Mutation(config.outputType, {
                 description: config.description,
+                nullable: config.nullable,
             })
             @CanPerform(...config.permissions)
             async [config.name](
@@ -41,17 +42,21 @@ export function createCustomResolver<
     } else if (config.resolveField) {
         @Resolver(() => item)
         class CustomResolverImpl extends ParentClass {
-            @ResolveField(config.resolveField, config.outputType)
+            @ResolveField(config.resolveField, config.outputType, {
+                description: config.description,
+                nullable: config.nullable,
+            })
             @CanPerform(...config.permissions)
             async [config.name](
                 @Parent() item: Item,
                 @Info() info: GraphQLResolveInfo,
                 @CurrentAbility.HTTP() ability: AppAbilityType,
+                @Args('where', {type: () => config.inputType, nullable: config.nullable}) where?: any
             ) {
                 const select = this.service.fieldSelectionProvider.parseSelection<Target>(info);
                 const factory = this.service.getFactory(FactoryClass);
                 // @ts-ignore
-                return factory[config.methodName](item, ability, select);
+                return factory[config.methodName](where, ability, item, select);
             }
         }
 
@@ -59,9 +64,9 @@ export function createCustomResolver<
     } else {
         @Resolver(() => item)
         class CustomResolverImpl extends ParentClass {
-            @Query(() => item, {
+            @Query(config.outputType, {
                 name: config.name,
-                nullable: true,
+                nullable: config.nullable,
             })
             @CanPerform(...config.permissions)
             async [config.name](

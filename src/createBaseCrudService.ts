@@ -232,6 +232,16 @@ export function createBaseCrudService<
             );
         }
 
+        /**
+         * Resolve a one-to-many relation
+         *
+         * @param {any} ability - The user's ability for authorization
+         * @param {string} targetModel - The name of the target model
+         * @param {string} foreignKey - The foreign key field name
+         * @param {string} itemId - The ID of the related item
+         * @param {any} select - Fields to select in the result
+         * @param {FindManyContract<TargetWhereInput>} [where] - Optional filter criteria for the related entities
+         */
         resolveOneToMany(ability: AppAbilityType, targetModel: string, foreignKey: string, itemId: string, select: any, where?: FindManyContract<TargetWhereInput> | undefined): Promise<Target[]> {
             return this.dataProvider.findMany<Target, WhereInput>(
                 targetModel,
@@ -247,6 +257,11 @@ export function createBaseCrudService<
             );
         }
 
+        /**
+         * Get the factory for a specific resolver
+         *
+         * @param {Type<TResolver>} constructor - The constructor of the resolver
+         */
         getFactory<TResolver>(constructor: Type<TResolver>): TResolver {
             return this.moduleRef.get(constructor, {strict: false});
         }
@@ -276,3 +291,4 @@ export function createBaseCrudService<
 
     return BaseCrudService;
 }
+

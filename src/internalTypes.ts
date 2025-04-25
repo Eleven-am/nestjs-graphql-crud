@@ -11,17 +11,23 @@ import { GraphQLResolveInfo } from "graphql";
 export type Getter<T> = () => T;
 
 /**
- * Type helper to extract parameter types from a method
+ * Type helper to extract parameter types from a method.
+ * Specifically designed to extract the first argument from methods with the
+ * signature (arg1: T, ability: AppAbilityType, select: any).
  */
-export type ParametersOfMethod<T, M extends keyof T> = T[M] extends (...args: any[]) => any
-    ? Parameters<T[M]> extends [infer Argument, AppAbilityType, any] ? Argument : never
+export type ParametersOfMethod<Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
+    ? Parameters<Target[Method]> extends [infer Argument, AppAbilityType, any] ? Argument : never
+    : never;
+
+export type ParametersOfResolveMethod<Item, Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
+    ? Parameters<Target[Method]> extends [infer Argument, AppAbilityType, Item, any] ? Argument : never
     : never;
 
 /**
- * Type helper to extract a return type from a method
+ * Type helper to extract a return type from a method.
  */
-export type ReturnTypeOfMethod<T, M extends keyof T> = T[M] extends (...args: any[]) => any
-    ? ReturnType<T[M]>
+export type ReturnTypeOfMethod<Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
+    ? ReturnType<Target[Method]>
     : never;
 
 /**

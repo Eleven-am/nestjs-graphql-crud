@@ -9,7 +9,7 @@ import {
     Getter,
     OneToManyRelationResolverConfig,
     OneToOneRelationResolverConfig,
-    ParametersOfMethod,
+    ParametersOfMethod, ParametersOfResolveMethod,
     ReturnTypeOfMethod,
     SubscriptionResolver
 } from "./internalTypes";
@@ -285,8 +285,7 @@ export class CustomResolverConfig<
         config: {
             name: string;
             description?: string;
-            inputType?: Type<ParametersOfMethod<TResolver, M>>;
-            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            inputType: Type<ParametersOfMethod<TResolver, M>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -294,8 +293,8 @@ export class CustomResolverConfig<
     ): this {
         const customConfig: CustomResolver<TResolver, M> = {
             ...config,
-            inputType: config.inputType || null as any,
-            outputType: config.outputType || (() => null as any),
+            inputType: config.inputType,
+            outputType: () => this.options.entity as any,
             isMutation: false,
         };
 
@@ -326,8 +325,7 @@ export class CustomResolverConfig<
         config: {
             name: string;
             description?: string;
-            inputType?: Type<ParametersOfMethod<TResolver, M>>;
-            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            inputType: Type<ParametersOfMethod<TResolver, M>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -335,8 +333,8 @@ export class CustomResolverConfig<
     ): this {
         const customConfig: CustomResolver<TResolver, M> = {
             ...config,
-            inputType: config.inputType || null as any,
-            outputType: config.outputType || (() => null as any),
+            inputType: config.inputType,
+            outputType: () => this.options.entity as any,
             isMutation: true,
         };
 
@@ -367,8 +365,8 @@ export class CustomResolverConfig<
         config: {
             name: string;
             description?: string;
-            inputType?: Type<ParametersOfMethod<TResolver, M>>;
-            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            inputType?: Type<ParametersOfResolveMethod<Item, TResolver, M>>;
+            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -378,7 +376,7 @@ export class CustomResolverConfig<
         const customConfig: CustomResolver<TResolver, M> = {
             ...config,
             inputType: config.inputType || null as any,
-            outputType: config.outputType || (() => null as any),
+            outputType: config.outputType,
             isMutation: false,
             resolveField: config.resolveField,
         };
@@ -386,7 +384,6 @@ export class CustomResolverConfig<
         if (!this.options.resolvers) {
             throw new Error('Custom resolver class not registered');
         }
-
 
         if (!this.options.resolvers.customResolvers) {
             throw new Error('Custom resolver class not registered');

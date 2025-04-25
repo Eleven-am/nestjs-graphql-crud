@@ -17,16 +17,32 @@ export type Getter<T> = () => T;
  * Specifically designed to extract the first argument from methods with the
  * signature (arg1: T, ability: AppAbilityType, select: any).
  */
-export type ParametersOfMethod<T, M extends keyof T> = T[M] extends (...args: any[]) => any
-    ? Parameters<T[M]> extends [infer Argument, AppAbilityType, any] ? Argument : never
+export type ParametersOfMethod<Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
+    ? Parameters<Target[Method]> extends [infer Argument, AppAbilityType, any] ? Argument : never
+    : never;
+
+export type ParametersOfResolveMethod<Item, Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
+    ? Parameters<Target[Method]> extends [infer Argument, AppAbilityType, Item, any] ? Argument : never
     : never;
 
 /**
  * Type helper to extract a return type from a method.
  */
-export type ReturnTypeOfMethod<T, M extends keyof T> = T[M] extends (...args: any[]) => any
-    ? ReturnType<T[M]>
+export type ReturnTypeOfMethod<Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
+    ? ReturnType<Target[Method]>
     : never;
+
+/**
+ * Interface for FindMany query parameters
+ *
+ * @template WhereInput - The type of the where input
+ */
+export interface FindManyContract<WhereInput> {
+    /** Filter criteria */
+    where?: WhereInput;
+    /** Pagination parameters */
+    pagination?: PaginationContract;
+}
 
 /**
  * Defines the structure for pagination arguments.
@@ -410,8 +426,8 @@ export declare class CustomResolverConfig<
         config: {
             name: string;
             description?: string;
-            inputType?: Type<ParametersOfMethod<TResolver, M>>;
-            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            inputType: Type<ParametersOfMethod<TResolver, M>>;
+            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -434,8 +450,8 @@ export declare class CustomResolverConfig<
         config: {
             name: string;
             description?: string;
-            inputType?: Type<ParametersOfMethod<TResolver, M>>;
-            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            inputType: Type<ParametersOfMethod<TResolver, M>>;
+            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
@@ -458,8 +474,8 @@ export declare class CustomResolverConfig<
         config: {
             name: string;
             description?: string;
-            inputType?: Type<ParametersOfMethod<TResolver, M>>;
-            outputType?: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+            inputType: Type<ParametersOfResolveMethod<Item, TResolver, M>>;
+            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
             nullable?: boolean;
             methodName: M & string;
             permissions: Permission[];
