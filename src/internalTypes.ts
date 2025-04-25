@@ -184,6 +184,15 @@ export interface DataProvider {
         where: WhereInputType,
         select: Record<string, boolean>
     ): Promise<EntityType[]>;
+
+    /**
+     * FindMany without ability check
+     */
+    findManyWithoutAbility<EntityType, WhereInputType>(
+        modelName: string,
+        args: QueryOptions<WhereInputType>,
+        select: Record<string, boolean>
+    ): Promise<EntityType[]>;
 }
 
 export interface CustomResolver<TResolver, M extends keyof TResolver> {
@@ -222,7 +231,7 @@ export interface SubscriptionResolver<EntityType, FilterType> {
      * Resolve entities for subscription updates
      * Transforms the raw changed entities into the final form sent to subscribers
      */
-    resolve(filter: FilterType, changes: EntityType[]): Promise<EntityType[]>;
+    resolve(filter: FilterType, changes: EntityType[], select: any): Promise<EntityType[]>;
 }
 
 /**

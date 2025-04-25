@@ -203,9 +203,10 @@ export interface SubscriptionResolver<EntityType, FilterType> {
      * shape the output according to the client's needs, or perform other transformations.
      * @param filter The filter criteria provided by the specific subscriber.
      * @param changes An array of entities that have changed and passed the `filter` check.
+     * @param select The selection criteria indicating which fields should be included in the response.
      * @returns A promise resolving to the array of entities (potentially transformed) to be sent to the subscriber.
      */
-    resolve(filter: FilterType, changes: EntityType[]): Promise<EntityType[]>;
+    resolve(filter: FilterType, changes: EntityType[], select: any): Promise<EntityType[]>;
 }
 
 /**

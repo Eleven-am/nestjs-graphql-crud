@@ -3,10 +3,9 @@
  * @description Creates a resolver for GraphQL subscriptions
  */
 
-import { SubscriptionResolver, DefaultSubscriptionFilter, DataProvider } from "./internalTypes";
+import {SubscriptionResolver, DefaultSubscriptionFilter, DataProvider, FieldSelectionProvider} from "./internalTypes";
 import { Inject, Injectable, Type } from "@nestjs/common";
 import { firstLetterUppercase } from "./decorators";
-import { ModuleRef } from "@nestjs/core";
 
 /**
  * Creates a subscription resolver class for handling real-time updates
@@ -15,6 +14,7 @@ import { ModuleRef } from "@nestjs/core";
  *
  * @param {string} modelName - The name of the model
  * @param {symbol} dataProviderToken - Symbol for the data provider token
+ * @param {symbol} fieldSelectionToken - Symbol for the field selection provider token
  * @param {Type<SubscriptionResolver<EntityType, Type>>} [resolver] - Optional custom resolver implementation
  * @returns {Type<SubscriptionResolver<EntityType, any>>} The subscription resolver class
  */
@@ -23,9 +23,9 @@ export function createSubscriptionResolver<
 >(
     modelName: string,
     dataProviderToken: symbol,
+    fieldSelectionToken: symbol,
     resolver?: Type<SubscriptionResolver<EntityType, Type>>
 ): Type<SubscriptionResolver<EntityType, any>> {
-    // If a custom resolver is provided, return it directly
     if (resolver) {
         return resolver;
     }
@@ -33,7 +33,7 @@ export function createSubscriptionResolver<
     @Injectable()
     class SubscriptionResolverImpl implements SubscriptionResolver<EntityType, any> {
         constructor(
-            private readonly moduleRef: ModuleRef,
+            @Inject(fieldSelectionToken) readonly fieldSelectionProvider: FieldSelectionProvider,
             @Inject(dataProviderToken) private readonly dataProvider: DataProvider
         ) {}
 
@@ -54,12 +54,21 @@ export function createSubscriptionResolver<
          *
          * @param {DefaultSubscriptionFilter} filter - The subscription filter
          * @param {EntityType[]} changes - The changed entities
+         * @param {any} info - The selection criteria
          * @returns {Promise<EntityType[]>} The resolved entities
          */
-        async resolve(filter: DefaultSubscriptionFilter, changes: EntityType[]): Promise<EntityType[]> {
-            // For simple ID-based filtering, we can just return the changes directly
-            // since they already contain the full entity data
-            return changes;
+        async resolve(filter: DefaultSubscriptionFilter, changes: EntityType[], info: any): Promise<EntityType[]> {
+            const select = this.fieldSelectionProvider.parseSelection<EntityType>(info);
+            return this.dataProvider.findManyWithoutAbility<EntityType, any>(
+                modelName,
+                {
+                    where: {
+                        id: { in: filter.inIds },
+                    },
+                },
+                select as unknown as Record<string, boolean>
+            );
+
         }
     }
 

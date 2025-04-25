@@ -20,8 +20,8 @@
   "dependencies": {
     "@nestjs/apollo": "^13.1.0",
     "@nestjs/graphql": "^13.1.0",
-    "@nestjs/platform-express": "^11.0.20",
-    "@nestjs/swagger": "^11.1.4",
+    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/swagger": "^11.1.5",
     "@paljs/plugins": "^8.1.0",
     "@prisma/client": "^6.6.0",
     "class-transformer": "^0.5.1",
@@ -33,8 +33,8 @@
   },
   "devDependencies": {
     "@eleven-am/authorizer": "^0.0.82",
-    "@nestjs/common": "^11.0.20",
-    "@nestjs/core": "^11.0.20",
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
     "@stylistic/eslint-plugin-ts": "^4.2.0",
     "@types/express": "^5.0.1",
     "@types/jest": "^29.5.14",

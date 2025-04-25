@@ -4,7 +4,7 @@
  */
 
 import { Injectable, OnModuleInit, Type } from "@nestjs/common";
-import { DataProvider, QueryOptions } from "../../internalTypes";
+import {DataProvider, QueryFilterOptions, QueryOptions} from "../../internalTypes";
 import { AppAbilityType } from "@eleven-am/authorizer";
 import { Action } from "@eleven-am/authorizer";
 import { accessibleBy } from "@casl/prisma";
@@ -98,14 +98,11 @@ export function PrismaDataProvider (Service: Type<PrismaClient>): Type<DataProvi
             where: WhereInputType,
             select: Record<string, boolean>
         ): Promise<EntityType[]> {
-            // Prisma's updateMany doesn't return the updated records, so we need to fetch them first
             const entitiesToUpdate = await this.prisma[modelName].findMany(
                 this.buildArgs(ability, Action.Update, modelName, where, select)
             );
 
             await this.prisma[modelName].updateMany(this.buildUpdateArgs(ability, Action.Update, modelName, data, where, {}));
-
-            // Return the entities that were updated
             return entitiesToUpdate;
         }
 
@@ -130,15 +127,26 @@ export function PrismaDataProvider (Service: Type<PrismaClient>): Type<DataProvi
             where: WhereInputType,
             select: Record<string, boolean>
         ): Promise<EntityType[]> {
-            // Prisma's deleteMany doesn't return the deleted records, so we need to fetch them first
             const entitiesToDelete = await this.prisma[modelName].findMany(
                 this.buildArgs(ability, Action.Delete, modelName, where, select)
             );
 
             await this.prisma[modelName].deleteMany(this.buildArgs(ability, Action.Delete, modelName, where, {}));
-
-            // Return the entities that were deleted
             return entitiesToDelete;
+        }
+
+        /**
+         * Find multiple entities without authorization
+         */
+        findManyWithoutAbility<EntityType, WhereInputType>(
+            modelName: string,
+            { where }: QueryFilterOptions<WhereInputType>,
+            select: Record<string, boolean>
+        ): Promise<EntityType[]> {
+            return this.prisma[modelName].findMany({
+                where,
+                select,
+            })
         }
 
         /**

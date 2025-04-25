@@ -265,7 +265,6 @@ export function createBaseCrudResolver<
          * Subscription to receive real-time updates for this entity type
          *
          * @param {any} where - Filter criteria for the subscription
-         * @returns {AsyncIterator<Item[]>} An async iterator of entity updates
          */
         @Subscription(() => [options.entity], {
             // @ts-ignore
@@ -273,8 +272,8 @@ export function createBaseCrudResolver<
                 return this.resolver.filter(variables.filter, payload.data);
             },
             // @ts-ignore
-            resolve(this: BaseCrudResolver, payload: { data: any[] }, variables: { filter: any })  {
-                return this.resolver.resolve(variables.filter, payload.data);
+            resolve(this: BaseCrudResolver, payload: { data: any[] }, variables: { filter: any }, _ctx, info)  {
+                return this.resolver.resolve(variables.filter, payload.data, info);
             }
         })
         async [`${options.modelName}s`](
