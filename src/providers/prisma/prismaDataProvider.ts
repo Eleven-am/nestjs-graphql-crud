@@ -54,12 +54,7 @@ export function PrismaDataProvider (Service: Type<PrismaClient>): Type<DataProvi
             return this.prisma[modelName].findMany({
                 take: pagination?.take,
                 skip: pagination?.skip,
-                where: {
-                    AND: [
-                        accessibleBy(ability, Action.Read)[modelName],
-                        this.buildWhereArgs(ability, Action.Read, modelName, where || {} as WhereInputType).where
-                    ]
-                },
+                where: this.buildWhereArgs(ability, Action.Read, modelName, where || {} as WhereInputType).where,
                 select,
             });
         }
