@@ -314,6 +314,8 @@ export interface OneToOneRelationResolverConfig<Item, Target> extends Omit<
     relationField: keyof Item;
     /** Flag indicating this is a one-to-one relation */
     oneToOneRelation: true
+    /** Whether the relation field is nullable */
+    nullable: boolean;
 }
 
 

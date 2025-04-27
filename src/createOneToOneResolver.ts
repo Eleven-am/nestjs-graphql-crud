@@ -41,7 +41,7 @@ export function createOneToOneResolver<Item, Target>(
          * @returns {Promise<Target | null>} The related entity or null
          */
         @ResolveField(config.fieldName, () => config.targetType, {
-            nullable: true,
+            nullable: config.nullable,
         })
         async [resolveMethodName](
             @Parent() item: Item,
