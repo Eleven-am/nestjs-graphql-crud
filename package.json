@@ -25,14 +25,14 @@
     "@paljs/plugins": "^8.1.0",
     "@prisma/client": "^6.6.0",
     "class-transformer": "^0.5.1",
-    "graphql": "^16.10.0",
+    "graphql": "^16.11.0",
     "graphql-subscriptions": "^3.0.0",
     "graphql-ws": "^6.0.4",
     "prisma-nestjs-graphql": "^21.1.1",
     "ws": "^8.18.1"
   },
   "devDependencies": {
-    "@eleven-am/authorizer": "^0.0.82",
+    "@eleven-am/authorizer": "^0.0.83",
     "@nestjs/common": "^11.1.0",
     "@nestjs/core": "^11.1.0",
     "@stylistic/eslint-plugin-ts": "^4.2.0",
