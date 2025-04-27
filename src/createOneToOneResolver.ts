@@ -40,7 +40,9 @@ export function createOneToOneResolver<Item, Target>(
          * @param {AppAbilityType} ability - The user's ability for authorization
          * @returns {Promise<Target | null>} The related entity or null
          */
-        @ResolveField(config.fieldName, () => config.targetType)
+        @ResolveField(config.fieldName, () => config.targetType, {
+            nullable: true,
+        })
         async [resolveMethodName](
             @Parent() item: Item,
             @Info() info: GraphQLResolveInfo,
