@@ -272,7 +272,7 @@ export interface OneToOneRelationResolverConfig<Item, Target> {
     /** The name of the field on the parent entity that holds the foreign key */
     relationField: keyof Item;
     /** Whether the relation field is nullable */
-    nullable: boolean;
+    nullable?: boolean;
 }
 
 /**

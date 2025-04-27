@@ -96,6 +96,7 @@ export class BaseCrudModuleConfig<
 
         this.options.resolvers.relationResolvers.push({
             ...config,
+            nullable: config.nullable ?? false,
             oneToOneRelation: true
         } as any);
         return this;
