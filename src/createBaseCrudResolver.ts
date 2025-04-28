@@ -3,12 +3,19 @@
  * @description Creates a GraphQL resolver with CRUD operations for a specific entity
  */
 
-import {CreateBaseCrudResolverOptions, FindManyContract, IGenericCrudService, IResolver} from "./internalTypes";
-import {Args, Info, Mutation, Query, Resolver} from "@nestjs/graphql";
-import {Inject, Type} from "@nestjs/common";
-import {createFindMany, firstLetterUppercase} from "./decorators";
-import {Action, AppAbilityType, CanPerform, CurrentAbility} from "@eleven-am/authorizer";
-import {GraphQLResolveInfo} from "graphql";
+import {
+    CreateBaseCrudResolverOptions,
+    FindManyContract,
+    IGenericCrudService,
+    SubscriptionResolver,
+    IResolver
+} from "./internalTypes";
+import { Args, Mutation, Query, Resolver, Subscription, Info } from "@nestjs/graphql";
+import { PubSub } from "graphql-subscriptions";
+import { Inject, Type } from "@nestjs/common";
+import { createFindMany, firstLetterUppercase } from "./decorators";
+import { Action, AppAbilityType, CanPerform, CurrentAbility } from "@eleven-am/authorizer";
+import { GraphQLResolveInfo } from "graphql";
 
 /**
  * Creates a GraphQL resolver class with standard CRUD operations for a specific entity
@@ -36,8 +43,11 @@ export function createBaseCrudResolver<
     Target,
     TargetWhereInput,
     TResolver extends object,
->(
+> (
+    pubSubToken: symbol,
     serviceToken: symbol,
+    resolverToken: symbol,
+    SubscriptionFilter: Type,
     options: CreateBaseCrudResolverOptions<
         Item,
         CreateInput,
@@ -45,7 +55,7 @@ export function createBaseCrudResolver<
         UpdateManyInput,
         WhereInput
     >
-): Type<IResolver<any, any, any, any, any, any, any>> {
+): Type<IResolver<any, any, any, any, any, any, any, any>> {
     const ModelName = firstLetterUppercase(options.modelName);
     const FindManyContract = createFindMany(options.whereInput, options.modelName);
 
@@ -58,15 +68,19 @@ export function createBaseCrudResolver<
         WhereInput
     > {
         constructor(
-            @Inject(serviceToken) readonly service: IGenericCrudService<
+            @Inject(serviceToken)
+            readonly service: IGenericCrudService<
                 Item,
                 CreateInput,
                 UpdateInput,
                 UpdateManyInput,
                 WhereInput,
                 Target,
-                TargetWhereInput
+                TargetWhereInput,
+                TResolver
             >,
+            @Inject(pubSubToken) private readonly pubSub: PubSub,
+            @Inject(resolverToken) private readonly resolver: SubscriptionResolver<Item, unknown>,
         ) {}
 
         /**
@@ -89,7 +103,7 @@ export function createBaseCrudResolver<
         async findOne(
             @CurrentAbility.HTTP() ability: any,
             @Info() info: GraphQLResolveInfo,
-            @Args('where', {type: () => options.whereInput}) where: WhereInput
+            @Args('where', { type: () => options.whereInput }) where: WhereInput
         ): Promise<Item | null> {
             const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.findOne(ability, where, select);
@@ -137,7 +151,7 @@ export function createBaseCrudResolver<
         })
         async create(
             @Info() info: GraphQLResolveInfo,
-            @Args('data', {type: () => options.createInput}) args: CreateInput
+            @Args('data', { type: () => options.createInput }) args: CreateInput
         ): Promise<Item> {
             const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.create(args, select);
@@ -163,8 +177,8 @@ export function createBaseCrudResolver<
         async updateOne(
             @Info() info: GraphQLResolveInfo,
             @CurrentAbility.HTTP() ability: AppAbilityType,
-            @Args('data', {type: () => options.updateInput}) data: UpdateInput,
-            @Args('id', {type: () => String}) id: string
+            @Args('data', { type: () => options.updateInput }) data: UpdateInput,
+            @Args('id', { type: () => String }) id: string
         ): Promise<Item> {
             const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.update(ability, data, id, select);
@@ -190,8 +204,8 @@ export function createBaseCrudResolver<
         async updateMany(
             @Info() info: GraphQLResolveInfo,
             @CurrentAbility.HTTP() ability: AppAbilityType,
-            @Args('data', {type: () => options.updateManyInput}) data: UpdateManyInput,
-            @Args('where', {type: () => options.whereInput}) where: WhereInput
+            @Args('data', { type: () => options.updateManyInput }) data: UpdateManyInput,
+            @Args('where', { type: () => options.whereInput }) where: WhereInput
         ): Promise<Item[]> {
             const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.updateMany(ability, data, where, select);
@@ -216,7 +230,7 @@ export function createBaseCrudResolver<
         async deleteOne(
             @Info() info: GraphQLResolveInfo,
             @CurrentAbility.HTTP() ability: AppAbilityType,
-            @Args('id', {type: () => String}) id: string
+            @Args('id', { type: () => String }) id: string
         ): Promise<Item> {
             const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.delete(ability, id, select);
@@ -241,10 +255,31 @@ export function createBaseCrudResolver<
         async deleteMany(
             @Info() info: GraphQLResolveInfo,
             @CurrentAbility.HTTP() ability: AppAbilityType,
-            @Args('where', {type: () => options.whereInput}) where: WhereInput
+            @Args('where', { type: () => options.whereInput }) where: WhereInput
         ): Promise<Item[]> {
             const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
             return this.service.deleteMany(ability, where, select);
+        }
+
+        /**
+         * Subscription to receive real-time updates for this entity type
+         *
+         * @param {any} where - Filter criteria for the subscription
+         */
+        @Subscription(() => [options.entity], {
+            // @ts-ignore
+            filter(this: BaseCrudResolver, payload: { data: any[] }, variables: { filter: any }) {
+                return this.resolver.filter(variables.filter, payload.data);
+            },
+            // @ts-ignore
+            resolve(this: BaseCrudResolver, payload: { data: any[] }, variables: { filter: any }, _ctx, info)  {
+                return this.resolver.resolve(variables.filter, payload.data, info);
+            }
+        })
+        async [`${options.modelName}s`](
+            @Args('filter', { type: () => SubscriptionFilter }) where: any
+        ) {
+            return this.pubSub.asyncIterableIterator(options.modelName);
         }
     }
 

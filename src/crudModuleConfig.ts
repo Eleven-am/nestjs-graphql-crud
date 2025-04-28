@@ -11,6 +11,7 @@ import {
     OneToOneRelationResolverConfig,
     ParametersOfMethod, ParametersOfResolveMethod,
     ReturnTypeOfMethod,
+    SubscriptionResolver
 } from "./internalTypes";
 import {DynamicModule, ForwardReference, Provider, Type} from "@nestjs/common";
 import {Permission, WillAuthorize} from "@eleven-am/authorizer";
@@ -98,6 +99,22 @@ export class BaseCrudModuleConfig<
             nullable: config.nullable ?? false,
             oneToOneRelation: true
         } as any);
+        return this;
+    }
+
+    /**
+     * Adds a custom subscription resolver to the module
+     *
+     * @template FilterType - The filter type for subscriptions
+     *
+     * @param {{ filter: Type<FilterType>; resolver: Type<SubscriptionResolver<Item, FilterType>> }} config - Configuration for the subscription resolver
+     * @returns {this} The configuration builder (for method chaining)
+     */
+    withSubscription<FilterType>(config: {
+        filter: Type<FilterType>;
+        resolver: Type<SubscriptionResolver<Item, FilterType>>;
+    }): this {
+        this.options.subscriptionResolver = config;
         return this;
     }
 

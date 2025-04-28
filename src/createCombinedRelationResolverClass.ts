@@ -26,9 +26,9 @@ import {createOneToOneResolver} from "./createOneToOneResolver";
 export function createCombinedRelationResolverClass<Item, Target, WhereInput>(
     modelName: string,
     item: Type<Item>,
-    ParentClass: Type<IResolver<any, any, any, any, any, Target, any>>,
+    ParentClass: Type<IResolver<any, any, any, any, any, Target, any, any>>,
     relationConfigs?: ResolverConfig<Item, Target, WhereInput>,
-): Type<IResolver<any, any, any, any, any, any, any>> {
+): Type<IResolver<any, any, any, any, any, any, any, any>> {
     if (!relationConfigs) {
         return ParentClass;
     }
@@ -48,7 +48,7 @@ export function createCombinedRelationResolverClass<Item, Target, WhereInput>(
 
     const MapRelationResolver = (
         config: RelationResolverConfig<Item, Target, WhereInput>[],
-        ParentClass: Type<IResolver<any, any, any, any, any, Target, any>>,
+        ParentClass: Type<IResolver<any, any, any, any, any, Target, any, any>>,
     ) => config
         .reduce((AccumulatorClass, config) => {
             if ('oneToOneRelation' in config) {

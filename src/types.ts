@@ -195,6 +195,37 @@ export interface DataProvider {
 }
 
 /**
+ * Interface defining the contract for filtering and resolving GraphQL subscription updates.
+ * Implement this interface to provide custom logic for how subscription events generated
+ * by the CRUD service are filtered for specific clients and how the final payload is shaped.
+ * Used with `CrudModuleConfig.withSubscription`.
+ *
+ * @template EntityType The entity type being tracked by the subscription.
+ * @template FilterType The type defining the filter criteria provided by the client when subscribing.
+ */
+export interface SubscriptionResolver<EntityType, FilterType> {
+    /**
+     * Determines if a specific subscriber, based on their filter criteria,
+     * should receive the notification about the given changes.
+     * @param filter The filter criteria provided by the specific subscriber.
+     * @param changes An array of entities that have changed (created, updated, or deleted) and triggered the event.
+     * @returns `true` if the subscriber should receive the update based on their filter, `false` otherwise.
+     */
+    filter(filter: FilterType, changes: EntityType[]): boolean;
+
+    /**
+     * Processes or transforms the changed entities before sending them to the subscriber.
+     * This method is called only if `filter` returns `true`. It can be used to fetch additional data,
+     * shape the output according to the client's needs, or perform other transformations.
+     * @param filter The filter criteria provided by the specific subscriber.
+     * @param changes An array of entities that have changed and passed the `filter` check.
+     * @param select The selection criteria indicating which fields should be included in the response.
+     * @returns A promise resolving to the array of entities (potentially transformed) to be sent to the subscriber.
+     */
+    resolve(filter: FilterType, changes: EntityType[], select: any): Promise<EntityType[]>;
+}
+
+/**
  * A generic constructor type representing a class constructor.
  * @template Class The class type.
  * @template Parameters The types of the constructor parameters.
@@ -278,6 +309,18 @@ export declare class BaseCrudModuleConfig<
     addOneToOneRelation<Target>(
         config: OneToOneRelationResolverConfig<Item, Target>
     ): this;
+
+    /**
+     * Adds a custom subscription resolver to the module.
+     *
+     * @template FilterType The filter type for subscriptions
+     * @param config Configuration for the subscription resolver
+     * @returns The configuration builder for chaining
+     */
+    withSubscription<FilterType>(config: {
+        filter: Type<FilterType>;
+        resolver: Type<SubscriptionResolver<Item, FilterType>>;
+    }): this;
 
     /**
      * Adds custom providers to the module.
@@ -496,6 +539,12 @@ export declare class CustomResolverConfig<
  *             methodName: 'changePassword',
  *             permissions: [Permission.UPDATE_USERS]
  *           })
+ *           .and()
+ *         // Add subscription support
+ *         .withSubscription({
+ *           filter: UserSubscriptionFilterInput,
+ *           resolver: CustomUserSubscriptionResolver
+ *         }),
  *     ]),
  * ]})
  * export class AppModule {}
@@ -537,7 +586,7 @@ export declare class CrudModulesFactory {
     static using(dataProvider: Type<DataProvider>, fieldSelectionProvider: Type<FieldSelectionProvider>): {
         /**
          * Creates the dynamic NestJS module containing all configured CRUD modules,
-         * relation resolvers and the specified global providers.
+         * relation resolvers, subscription handlers, and the specified global providers.
          * This resulting module should be included in the `imports` array of your root AppModule
          * or a relevant feature module.
          * @param configBuilders An array of `CrudModuleConfig` instances, each fully configured
@@ -581,6 +630,25 @@ export declare class PrismaFieldSelectionProvider implements FieldSelectionProvi
  * ```
  */
 export declare function PrismaDataProvider(Service: Type<PrismaClient>): Type<DataProvider>;
+
+/**
+ * A decorator function that marks a method's parameter as the current `PubSub` instance.
+ * This is useful for injecting the `PubSub` instance into your subscription resolvers
+ * or other classes that need to publish events.
+ * @returns A parameter decorator that can be applied to method parameters.
+ * @example
+ * ```typescript
+ * import { PubSub } from 'graphql-subscriptions';
+ * import { CurrentPubSub } from '@eleven-am/nestjs-graphql-crud';
+ *
+ * class MySubscriptionResolver {
+ *   constructor(@CurrentPubSub() private pubSub: PubSub) {}
+ * }
+ * ```
+ * This decorator will inject the current `PubSub` instance into the constructor of your class.
+ * You can then use this instance to publish events to subscribers.
+ */
+export declare function CurrentPubSub(): ParameterDecorator;
 
 /**
  * A factory function that creates a `FindManyContract` type for a specific entity type.

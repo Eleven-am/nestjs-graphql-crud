@@ -31,6 +31,22 @@ export type ReturnTypeOfMethod<Target, Method extends keyof Target> = Target[Met
     : never;
 
 /**
+ * Enum for subscription action types
+ */
+export enum CrudAction {
+    /** Entity was created */
+    CREATE = "CREATE",
+    /** Entity was updated */
+    UPDATE = "UPDATE",
+    /** Entity was deleted */
+    DELETE = "DELETE",
+    /** Multiple entities were deleted */
+    DELETE_MANY = "DELETE_MANY",
+    /** Multiple entities were updated */
+    UPDATE_MANY = "UPDATE_MANY",
+}
+
+/**
  * Interface for pagination parameters
  */
 export interface PaginationContract {
@@ -207,6 +223,24 @@ export interface CustomResolver<TResolver, M extends keyof TResolver> {
 }
 
 /**
+ * Interface for subscription resolver
+ * This focuses only on subscription filtering and resolution
+ */
+export interface SubscriptionResolver<EntityType, FilterType> {
+    /**
+     * Filter subscription events
+     * Determines if the changes should be sent to a specific subscriber
+     */
+    filter(filter: FilterType, changes: EntityType[]): boolean;
+
+    /**
+     * Resolve entities for subscription updates
+     * Transforms the raw changed entities into the final form sent to subscribers
+     */
+    resolve(filter: FilterType, changes: EntityType[], select: any): Promise<EntityType[]>;
+}
+
+/**
  * Interface for options to create a base CRUD resolver
  *
  * @template Item - The entity type
@@ -338,6 +372,11 @@ export interface CrudModuleOptions<
 > {
     /** Optional relation resolvers */
     resolvers?: ResolverConfig<Item, unknown, unknown>;
+    /** Optional subscription resolver configuration */
+    subscriptionResolver?: {
+        filter: Type,
+        resolver: Type<SubscriptionResolver<Item, unknown>>;
+    };
 }
 
 /**
@@ -384,6 +423,7 @@ export interface IGenericCrudService<
     WhereInput,
     Target,
     TargetWhereInput,
+    TResolver extends object,
 > {
     /** The means of selecting fields in the GraphQL schema */
     fieldSelectionProvider: FieldSelectionProvider
@@ -491,6 +531,15 @@ export interface IGenericCrudService<
      * @returns {Class} The factory instance
      */
     getFactory<TResolver>(constructor: Type<TResolver>): TResolver;
+
+    /**
+     * Publish changes to subscribers
+     *
+     * @param {CrudAction} action - The action that triggered the event
+     * @param {any} data - The data to publish
+     * @returns {Promise<void>} A promise that resolves when the publish is complete
+     */
+    publish(action: CrudAction, data: any): Promise<void>;
 }
 
 export interface IResolver<
@@ -501,6 +550,7 @@ export interface IResolver<
     WhereInput,
     Target,
     TargetWhereInput,
+    TResolver extends object,
 > {
     service: IGenericCrudService<
         Item,
@@ -509,10 +559,21 @@ export interface IResolver<
         UpdateManyInput,
         WhereInput,
         Target,
-        TargetWhereInput
+        TargetWhereInput,
+        TResolver
     >
 }
 
+
+/**
+ * Input type for subscription filtering by IDs
+ */
+@InputType()
+export class DefaultSubscriptionFilter {
+    /** Array of entity IDs to subscribe to */
+    @Field(() => [String])
+    inIds: string[];
+}
 
 /**
  * Generic constructor type

@@ -26,8 +26,8 @@ export function createOneToOneResolver<Item, Target>(
     modelName: string,
     item: Type<Item>,
     config: OneToOneRelationResolverConfig<Item, Target>,
-    ParentClass: Type<IResolver<any, any, any, any, any, any, any>>
-): Type<IResolver<any, any, any, any, any, any, any>> {
+    ParentClass: Type<IResolver<any, any, any, any, any, any, any, any>>
+): Type<IResolver<any, any, any, any, any, any, any, any>> {
     const resolveMethodName = `resolve${firstLetterUppercase(config.fieldName)}`;
 
     @Resolver(() => item)
@@ -59,5 +59,5 @@ export function createOneToOneResolver<Item, Target>(
         writable: false,
     });
 
-    return OneToOneResolver as Type<IResolver<any, any, any, any, any, any, any>>;
+    return OneToOneResolver as Type<IResolver<any, any, any, any, any, any, any, any>>;
 }
