@@ -3,13 +3,12 @@
  * @description Creates a dynamically generated NestJS module with CRUD operations for a specific model
  */
 
-import { CrudModuleOptions, DefaultSubscriptionFilter } from "./internalTypes";
+import { CrudModuleOptions } from "./internalTypes";
 import { createBaseCrudService } from "./createBaseCrudService";
 import { DynamicModule, Provider } from "@nestjs/common";
 import { createBaseCrudResolver } from "./createBaseCrudResolver";
-import { firstLetterUppercase, PUB_SUB_SYMBOL } from "./decorators";
+import { firstLetterUppercase } from "./decorators";
 import { createCombinedRelationResolverClass } from "./createCombinedRelationResolverClass";
-import { createSubscriptionResolver } from "./createSubscriptionResolver";
 
 /**
  * Creates a NestJS dynamic module that provides CRUD operations for a specific model
@@ -42,35 +41,20 @@ export function createBaseCrudModule <
         WhereInput
     >
 ): DynamicModule {
-    const SubscriptionFilter = options.subscriptionResolver?.filter ?? DefaultSubscriptionFilter;
-
     const serviceToken = Symbol(`${options.modelName}Service`);
-    const subscriptionResolversToken = Symbol(`${options.modelName}SubscriptionResolvers`);
 
     const BaseCrudService = createBaseCrudService(
         options.modelName,
-        PUB_SUB_SYMBOL,
         dataProviderToken,
         fieldSelectionProviderToken,
     );
 
     const BaseCrudResolver = createBaseCrudResolver(
-        PUB_SUB_SYMBOL,
         serviceToken,
-        subscriptionResolversToken,
-        SubscriptionFilter,
         options
     );
 
-    const SubscriptionResolver = createSubscriptionResolver(
-        options.modelName,
-        dataProviderToken,
-        fieldSelectionProviderToken,
-        options.subscriptionResolver?.resolver
-    );
-
     const BaseCrudServiceProvider: Provider = { provide: serviceToken, useClass: BaseCrudService };
-    const SubscriptionResolverProvider: Provider = { provide: subscriptionResolversToken, useClass: SubscriptionResolver };
 
     const CrudResolver = createCombinedRelationResolverClass(
         options.modelName,
@@ -95,7 +79,6 @@ export function createBaseCrudModule <
                 providers: [
                     CrudResolver,
                     BaseCrudServiceProvider,
-                    SubscriptionResolverProvider,
                     ...(options.providers ?? []),
                 ],
             };

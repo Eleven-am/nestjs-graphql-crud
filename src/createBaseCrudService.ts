@@ -4,9 +4,8 @@
  */
 
 import {Inject, Injectable, Type} from "@nestjs/common";
-import {CrudAction, DataProvider, FieldSelectionProvider, FindManyContract, IGenericCrudService} from "./internalTypes";
+import {DataProvider, FieldSelectionProvider, FindManyContract, IGenericCrudService} from "./internalTypes";
 import {firstLetterUppercase} from "./decorators";
-import {PubSub} from "graphql-subscriptions";
 import {AppAbilityType} from "@eleven-am/authorizer";
 import {ModuleRef} from "@nestjs/core";
 
@@ -40,7 +39,6 @@ export function createBaseCrudService<
 >
 (
     modelName: string,
-    pubSubToken: symbol,
     dataProviderToken: symbol,
     fieldSelectionToken: symbol,
 ): Type {
@@ -52,12 +50,10 @@ export function createBaseCrudService<
         UpdateManyInput,
         WhereInput,
         Target,
-        TargetWhereInput,
-        TResolver
+        TargetWhereInput
     > {
         constructor(
             private readonly moduleRef: ModuleRef,
-            @Inject(pubSubToken) private readonly pubSub: PubSub,
             @Inject(dataProviderToken) private readonly dataProvider: DataProvider,
             @Inject(fieldSelectionToken) readonly fieldSelectionProvider: FieldSelectionProvider
         ) {
@@ -70,14 +66,12 @@ export function createBaseCrudService<
          * @param {any} select - Fields to select in the result
          * @returns {Promise<Item>} The newly created entity
          */
-        async create(data: CreateInput, select: any): Promise<Item> {
-            const res = await this.dataProvider.create<Item, CreateInput>(
+        create(data: CreateInput, select: any): Promise<Item> {
+            return this.dataProvider.create<Item, CreateInput>(
                 modelName,
                 data,
                 select
             );
-            await this.publish(CrudAction.CREATE, res);
-            return res;
         }
 
         /**
@@ -88,15 +82,13 @@ export function createBaseCrudService<
          * @param {any} select - Fields to select in the result
          * @returns {Promise<Item>} The deleted entity
          */
-        async delete(ability: any, whereId: string, select: any): Promise<Item> {
-            const res = await this.dataProvider.delete<Item>(
+        delete(ability: any, whereId: string, select: any): Promise<Item> {
+            return this.dataProvider.delete<Item>(
                 modelName,
                 ability,
                 whereId,
                 select
             );
-            await this.publish(CrudAction.DELETE, res);
-            return res;
         }
 
         /**
@@ -122,7 +114,6 @@ export function createBaseCrudService<
                 select
             );
 
-            await this.publish(CrudAction.DELETE_MANY, gotDeleted);
             return gotDeleted;
         }
 
@@ -172,17 +163,14 @@ export function createBaseCrudService<
          * @param {any} select - Fields to select in the result
          * @returns {Promise<Item>} The updated entity
          */
-        async update(ability: any, data: UpdateInput, whereId: string, select: any): Promise<Item> {
-            const res = await this.dataProvider.update<Item, UpdateInput>(
+        update(ability: any, data: UpdateInput, whereId: string, select: any): Promise<Item> {
+            return this.dataProvider.update<Item, UpdateInput>(
                 modelName,
                 ability,
                 data,
                 whereId,
                 select
             );
-
-            await this.publish(CrudAction.UPDATE, res);
-            return res;
         }
 
         /**
@@ -210,7 +198,6 @@ export function createBaseCrudService<
                 select
             );
 
-            await this.publish(CrudAction.UPDATE_MANY, gotUpdated);
             return gotUpdated;
         }
 
@@ -264,23 +251,6 @@ export function createBaseCrudService<
          */
         getFactory<TResolver>(constructor: Type<TResolver>): TResolver {
             return this.moduleRef.get(constructor, {strict: false});
-        }
-
-        /**
-         * Publish changes to subscribers
-         *
-         * @private
-         * @param {CrudAction} action - The type of action that occurred
-         * @param {any} data - The data to publish
-         * @returns {Promise<void>}
-         */
-        async publish(action: CrudAction, data: any): Promise<void> {
-            const arrayData = Array.isArray(data) ? data : [data];
-
-            await this.pubSub.publish(modelName, {
-                action,
-                data: arrayData,
-            });
         }
     }
 

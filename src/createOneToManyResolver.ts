@@ -10,11 +10,11 @@ import {
     IResolver,
     OneToManyRelationResolverConfig
 } from "./internalTypes";
-import { Args, Info, Parent, ResolveField, Resolver } from "@nestjs/graphql";
-import { firstLetterUppercase } from "./decorators";
-import { AppAbilityType, CurrentAbility } from "@eleven-am/authorizer";
-import { Type } from "@nestjs/common";
-import { GraphQLResolveInfo } from "graphql";
+import {Args, Info, Parent, ResolveField, Resolver} from "@nestjs/graphql";
+import {firstLetterUppercase} from "./decorators";
+import {AppAbilityType, CurrentAbility} from "@eleven-am/authorizer";
+import {Type} from "@nestjs/common";
+import {GraphQLResolveInfo} from "graphql";
 
 /**
  * Creates a resolver class for one-to-many relationships
@@ -33,8 +33,8 @@ export function createOneToManyResolver<Item, Target, WhereInput>(
     modelName: string,
     item: Type<Item>,
     config: OneToManyRelationResolverConfig<Target, WhereInput>,
-    ParentClass: Type<IResolver<any, any, any, any, any, any, any, any>>
-): Type<IResolver<any, any, any, any, any, any, any, any>> {
+    ParentClass: Type<IResolver<any, any, any, any, any, any, any>>
+): Type<IResolver<any, any, any, any, any, any, any>> {
     const resolveMethodName = `resolve${firstLetterUppercase(config.fieldName)}`;
 
     if (config.targetWhereInput) {
@@ -69,7 +69,7 @@ export function createOneToManyResolver<Item, Target, WhereInput>(
             writable: false,
         });
 
-        return OneToManyResolver as Type<IResolver<any, any, any, any, any, any, any, any>>;
+        return OneToManyResolver as Type<IResolver<any, any, any, any, any, any, any>>;
     } else {
         @Resolver(() => item)
         class OneToManyResolver extends ParentClass {
@@ -97,6 +97,6 @@ export function createOneToManyResolver<Item, Target, WhereInput>(
             writable: false,
         });
 
-        return OneToManyResolver as Type<IResolver<any, any, any, any, any, any, any, any>>;
+        return OneToManyResolver as Type<IResolver<any, any, any, any, any, any, any>>;
     }
 }

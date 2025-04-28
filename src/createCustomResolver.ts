@@ -15,9 +15,9 @@ export function createCustomResolver<
     modelName: string,
     FactoryClass: Type<TResolver>,
     config: CustomResolver<TResolver, MethodName>,
-    ParentClass: Type<IResolver<any, any, any, any, any, Target, any, any>>
-): Type<IResolver<any, any, any, any, any, Target, any, any>> {
-    let Class: Type<IResolver<any, any, any, any, any, Target, any, any>>;
+    ParentClass: Type<IResolver<any, any, any, any, any, Target, any>>
+): Type<IResolver<any, any, any, any, any, Target, any>> {
+    let Class: Type<IResolver<any, any, any, any, any, Target, any>>;
     if (config.isMutation) {
         @Resolver(() => item)
         class CustomResolverImpl extends ParentClass {

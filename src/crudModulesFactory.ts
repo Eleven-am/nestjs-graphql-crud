@@ -4,11 +4,9 @@
  */
 
 import { createBaseCrudModule } from "./createBaseCrudModule";
-import { PubSub } from "graphql-subscriptions";
 import { DynamicModule, Provider, Type } from "@nestjs/common";
 import { CrudModuleConfig } from "./crudModuleConfig";
 import { DataProvider, FieldSelectionProvider } from "./internalTypes";
-import { PUB_SUB_SYMBOL } from "./decorators";
 
 /**
  * Factory class for creating and registering CRUD modules
@@ -79,12 +77,6 @@ export class CrudModulesFactory {
                 const dataProviderToken = Symbol('DataProvider');
                 const fieldSelectionProviderToken = Symbol('FieldSelectionProvider');
 
-                // Create providers
-                const pubSubProvider: Provider = {
-                    provide: PUB_SUB_SYMBOL,
-                    useValue: new PubSub()
-                };
-
                 const dataProviderInstanceProvider: Provider = {
                     provide: dataProviderToken,
                     useClass: dataProvider
@@ -110,12 +102,10 @@ export class CrudModulesFactory {
                     imports: crudModules,
                     module: CrudModulesFactory,
                     providers: [
-                        pubSubProvider,
                         dataProviderInstanceProvider,
                         fieldSelectionProviderInstanceProvider
                     ],
                     exports: [
-                        pubSubProvider,
                         dataProviderInstanceProvider,
                         fieldSelectionProviderInstanceProvider
                     ],
