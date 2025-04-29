@@ -89,5 +89,5 @@ export function createFindMany<T> (whereInput: Type<T>, modelName: string): Type
 export const PUB_SUB_SYMBOL = Symbol('PUB_SUB_SYMBOL');
 
 export function CurrentPubSub (){
-    return applyDecorators(Inject(PUB_SUB_SYMBOL));
+    return Inject(PUB_SUB_SYMBOL);
 }

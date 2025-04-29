@@ -5,7 +5,7 @@
 
 import {Inject, Injectable, Type} from "@nestjs/common";
 import {CrudAction, DataProvider, FieldSelectionProvider, FindManyContract, IGenericCrudService} from "./internalTypes";
-import {firstLetterUppercase} from "./decorators";
+import {CurrentPubSub, firstLetterUppercase} from "./decorators";
 import {PubSub} from "graphql-subscriptions";
 import {AppAbilityType} from "@eleven-am/authorizer";
 import {ModuleRef} from "@nestjs/core";
@@ -23,7 +23,6 @@ import {ModuleRef} from "@nestjs/core";
  * @template TResolver - The type of the resolver class
  *
  * @param {string} modelName - The name of the model
- * @param {symbol} pubSubToken - Symbol for the PubSub token used for subscriptions
  * @param {symbol} dataProviderToken - Symbol for the data provider token
  * @param {symbol} fieldSelectionToken - Symbol for the field selection provider token
  * @returns {Type} A dynamically generated service class with CRUD operations
@@ -40,7 +39,6 @@ export function createBaseCrudService<
 >
 (
     modelName: string,
-    pubSubToken: symbol,
     dataProviderToken: symbol,
     fieldSelectionToken: symbol,
 ): Type {
@@ -57,7 +55,7 @@ export function createBaseCrudService<
     > {
         constructor(
             private readonly moduleRef: ModuleRef,
-            @Inject(pubSubToken) private readonly pubSub: PubSub,
+            @CurrentPubSub() private readonly pubSub: PubSub,
             @Inject(dataProviderToken) private readonly dataProvider: DataProvider,
             @Inject(fieldSelectionToken) readonly fieldSelectionProvider: FieldSelectionProvider
         ) {

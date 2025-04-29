@@ -4,17 +4,15 @@
  */
 
 import {
-    Constructor,
     FindManyContract,
-    IGenericCrudService,
     IResolver,
     OneToManyRelationResolverConfig
 } from "./internalTypes";
-import { Args, Info, Parent, ResolveField, Resolver } from "@nestjs/graphql";
-import { firstLetterUppercase } from "./decorators";
-import { AppAbilityType, CurrentAbility } from "@eleven-am/authorizer";
-import { Type } from "@nestjs/common";
-import { GraphQLResolveInfo } from "graphql";
+import {Args, Info, Parent, ResolveField, Resolver} from "@nestjs/graphql";
+import {firstLetterUppercase} from "./decorators";
+import {AppAbilityType, CurrentAbility} from "@eleven-am/authorizer";
+import {Type} from "@nestjs/common";
+import {GraphQLResolveInfo} from "graphql";
 
 /**
  * Creates a resolver class for one-to-many relationships

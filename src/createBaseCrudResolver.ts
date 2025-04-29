@@ -13,7 +13,7 @@ import {
 import { Args, Mutation, Query, Resolver, Subscription, Info } from "@nestjs/graphql";
 import { PubSub } from "graphql-subscriptions";
 import { Inject, Type } from "@nestjs/common";
-import { createFindMany, firstLetterUppercase } from "./decorators";
+import {createFindMany, CurrentPubSub, firstLetterUppercase} from "./decorators";
 import { Action, AppAbilityType, CanPerform, CurrentAbility } from "@eleven-am/authorizer";
 import { GraphQLResolveInfo } from "graphql";
 
@@ -26,10 +26,8 @@ import { GraphQLResolveInfo } from "graphql";
  * @template UpdateManyInput - The input type for update many operations
  * @template WhereInput - The input type for query filters
  *
- * @param {symbol} pubSubToken - Symbol for the PubSub token used for subscriptions
  * @param {symbol} serviceToken - Symbol for the CRUD service token
  * @param {symbol} resolverToken - Symbol for the subscription resolver token
- * @param {symbol} fieldSelectionToken - Symbol for the field selection provider token
  * @param {Type} SubscriptionFilter - The filter type for subscriptions
  * @param {CreateBaseCrudResolverOptions<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>} options - Configuration options
  * @returns {Type} A dynamically generated resolver class with CRUD operations
@@ -44,7 +42,6 @@ export function createBaseCrudResolver<
     TargetWhereInput,
     TResolver extends object,
 > (
-    pubSubToken: symbol,
     serviceToken: symbol,
     resolverToken: symbol,
     SubscriptionFilter: Type,
@@ -79,8 +76,8 @@ export function createBaseCrudResolver<
                 TargetWhereInput,
                 TResolver
             >,
-            @Inject(pubSubToken) private readonly pubSub: PubSub,
             @Inject(resolverToken) private readonly resolver: SubscriptionResolver<Item, unknown>,
+            @CurrentPubSub() private readonly pubSub: PubSub,
         ) {}
 
         /**

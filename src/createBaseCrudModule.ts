@@ -7,7 +7,7 @@ import { CrudModuleOptions, DefaultSubscriptionFilter } from "./internalTypes";
 import { createBaseCrudService } from "./createBaseCrudService";
 import { DynamicModule, Provider } from "@nestjs/common";
 import { createBaseCrudResolver } from "./createBaseCrudResolver";
-import { firstLetterUppercase, PUB_SUB_SYMBOL } from "./decorators";
+import { firstLetterUppercase } from "./decorators";
 import { createCombinedRelationResolverClass } from "./createCombinedRelationResolverClass";
 import { createSubscriptionResolver } from "./createSubscriptionResolver";
 
@@ -49,13 +49,11 @@ export function createBaseCrudModule <
 
     const BaseCrudService = createBaseCrudService(
         options.modelName,
-        PUB_SUB_SYMBOL,
         dataProviderToken,
         fieldSelectionProviderToken,
     );
 
     const BaseCrudResolver = createBaseCrudResolver(
-        PUB_SUB_SYMBOL,
         serviceToken,
         subscriptionResolversToken,
         SubscriptionFilter,
