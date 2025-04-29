@@ -274,7 +274,10 @@ export function createBaseCrudResolver<
             }
         })
         async [`${options.modelName}s`](
-            @Args('filter', { type: () => SubscriptionFilter }) where: any
+            @Args('filter', {
+                type: () => SubscriptionFilter,
+                nullable: true,
+            }) where: any
         ) {
             return this.pubSub.asyncIterableIterator(options.modelName);
         }

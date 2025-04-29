@@ -44,7 +44,11 @@ export function createSubscriptionResolver<
          * @param {EntityType[]} changes - The changed entities
          * @returns {boolean} Whether the changes match the filter
          */
-        filter(filter: DefaultSubscriptionFilter, changes: EntityType[]): boolean {
+        filter(filter: DefaultSubscriptionFilter | null, changes: EntityType[]): boolean {
+            if (!filter) {
+                return true;
+            }
+
             const items = changes as unknown as { id: string }[];
             return filter.inIds.some((id) => items.some((item) => item.id === id));
         }
@@ -57,14 +61,14 @@ export function createSubscriptionResolver<
          * @param {any} info - The selection criteria
          * @returns {Promise<EntityType[]>} The resolved entities
          */
-        async resolve(filter: DefaultSubscriptionFilter, changes: EntityType[], info: any): Promise<EntityType[]> {
+        async resolve(filter: DefaultSubscriptionFilter | null, changes: EntityType[], info: any): Promise<EntityType[]> {
             const select = this.fieldSelectionProvider.parseSelection<EntityType>(info);
             return this.dataProvider.findManyWithoutAbility<EntityType, any>(
                 modelName,
                 {
-                    where: {
+                    where: filter ? {
                         id: { in: filter.inIds },
-                    },
+                    }: undefined,
                 },
                 select as unknown as Record<string, boolean>
             );

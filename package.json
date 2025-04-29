@@ -23,7 +23,7 @@
     "@nestjs/platform-express": "^11.1.0",
     "@nestjs/swagger": "^11.1.5",
     "@paljs/plugins": "^8.1.0",
-    "@prisma/client": "^6.6.0",
+    "@prisma/client": "^6.7.0",
     "class-transformer": "^0.5.1",
     "graphql": "^16.11.0",
     "graphql-subscriptions": "^3.0.0",
@@ -32,7 +32,7 @@
     "ws": "^8.18.1"
   },
   "devDependencies": {
-    "@eleven-am/authorizer": "^0.0.90",
+    "@eleven-am/authorizer": "^0.0.92",
     "@nestjs/common": "^11.1.0",
     "@nestjs/core": "^11.1.0",
     "@stylistic/eslint-plugin-ts": "^4.2.0",
