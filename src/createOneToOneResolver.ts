@@ -5,8 +5,8 @@
 
 import {IResolver, OneToOneRelationResolverConfig} from "./internalTypes";
 import {Info, Parent, ResolveField, Resolver} from "@nestjs/graphql";
-import {firstLetterUppercase} from "./decorators";
-import {AppAbilityType, CurrentAbility} from "@eleven-am/authorizer";
+import {CurrentAbility, firstLetterUppercase} from "./decorators";
+import {AppAbilityType} from "@eleven-am/authorizer";
 import {Type} from "@nestjs/common";
 import {GraphQLResolveInfo} from "graphql";
 

@@ -3,9 +3,10 @@
  * @description Provides decorators and utility functions for GraphQL resolvers
  */
 
-import { applyDecorators, Inject, Type } from "@nestjs/common";
+import { Inject, Type } from "@nestjs/common";
 import { Field, InputType } from "@nestjs/graphql";
 import { FindManyContract } from "./internalTypes";
+import { AppAbilityType, createParamDecorator } from "@eleven-am/authorizer";
 
 /**
  * Utility function to capitalize the first letter of a string
@@ -91,3 +92,9 @@ export const PUB_SUB_SYMBOL = Symbol('PUB_SUB_SYMBOL');
 export function CurrentPubSub (){
     return Inject(PUB_SUB_SYMBOL);
 }
+
+export const CurrentAbility = createParamDecorator(
+    (ctx) => {
+        return ctx.getData<AppAbilityType>('ABILITY_KEY');
+    },
+)

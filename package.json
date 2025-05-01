@@ -21,7 +21,7 @@
     "@nestjs/apollo": "^13.1.0",
     "@nestjs/graphql": "^13.1.0",
     "@nestjs/platform-express": "^11.1.0",
-    "@nestjs/swagger": "^11.1.5",
+    "@nestjs/swagger": "^11.1.6",
     "@paljs/plugins": "^8.1.0",
     "@prisma/client": "^6.7.0",
     "class-transformer": "^0.5.1",

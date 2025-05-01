@@ -1,9 +1,9 @@
 import {Type} from "@nestjs/common";
 import {CustomResolver, IResolver} from "./internalTypes";
 import {Args, Info, Mutation, Parent, Query, ResolveField, Resolver} from "@nestjs/graphql";
-import {AppAbilityType, CanPerform, CurrentAbility} from "@eleven-am/authorizer";
+import {AppAbilityType, CanPerform} from "@eleven-am/authorizer";
 import {GraphQLResolveInfo} from "graphql/type";
-import {firstLetterUppercase} from "./decorators";
+import {CurrentAbility, firstLetterUppercase} from "./decorators";
 
 export function createCustomResolver<
     Item,

@@ -13,7 +13,7 @@ import {
 import { Args, Mutation, Query, Resolver, Subscription, Info } from "@nestjs/graphql";
 import { PubSub } from "graphql-subscriptions";
 import { Inject, Type } from "@nestjs/common";
-import {createFindMany, CurrentPubSub, firstLetterUppercase} from "./decorators";
+import { createFindMany, CurrentPubSub, firstLetterUppercase } from "./decorators";
 import { Action, AppAbilityType, CanPerform, CurrentAbility } from "@eleven-am/authorizer";
 import { GraphQLResolveInfo } from "graphql";
 

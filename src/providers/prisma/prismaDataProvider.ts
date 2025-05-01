@@ -192,7 +192,19 @@ export function PrismaDataProvider (Service: Type<PrismaClient>): Type<DataProvi
          * @param {any} where - Filter criteria
          * @returns {{ where: object }} The built where clause
          */
-        private buildWhereArgs(ability: AppAbilityType, action: Action, modelName: string, where?: any): { where: object } {
+        private buildWhereArgs(ability: AppAbilityType | null, action: Action, modelName: string, where?: any): { where: object } {
+            if (!ability) {
+                if (typeof where === 'string') {
+                    return {
+                        where: {
+                            id: where,
+                        }
+                    };
+                }
+
+                return { where };
+            }
+
             if (typeof where === 'string') {
                 return {
                     where: {
