@@ -1,4 +1,4 @@
-// index.d.ts (Updated Version with Custom Resolver Support)
+// index.d.ts (Updated Version with Custom Resolver Support and FindManyArgs)
 
 import {DynamicModule, ForwardReference, Provider, Type} from '@nestjs/common';
 import {GraphQLResolveInfo} from 'graphql';
@@ -18,19 +18,19 @@ export type Getter<T> = () => T;
  * signature (arg1: T, ability: AppAbilityType, select: any).
  */
 export type ParametersOfMethod<Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
-    ? Parameters<Target[Method]> extends [infer Argument, AppAbilityType, any] ? Argument : never
-    : never;
+	? Parameters<Target[Method]> extends [infer Argument, AppAbilityType, any] ? Argument : never
+	: never;
 
 export type ParametersOfResolveMethod<Item, Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
-    ? Parameters<Target[Method]> extends [infer Argument, AppAbilityType, Item, any] ? Argument : never
-    : never;
+	? Parameters<Target[Method]> extends [infer Argument, AppAbilityType, Item, any] ? Argument : never
+	: never;
 
 /**
  * Type helper to extract a return type from a method.
  */
 export type ReturnTypeOfMethod<Target, Method extends keyof Target> = Target[Method] extends (...args: any[]) => any
-    ? ReturnType<Target[Method]>
-    : never;
+	? ReturnType<Target[Method]>
+	: never;
 
 /**
  * Interface for FindMany query parameters
@@ -38,10 +38,10 @@ export type ReturnTypeOfMethod<Target, Method extends keyof Target> = Target[Met
  * @template WhereInput - The type of the where input
  */
 export declare class FindManyContract<WhereInput> {
-    /** Filter criteria */
-    where?: WhereInput;
-    /** Pagination parameters */
-    pagination?: PaginationContract;
+	/** Filter criteria */
+	where?: WhereInput;
+	/** Pagination parameters */
+	pagination?: PaginationContract;
 }
 
 /**
@@ -49,10 +49,10 @@ export declare class FindManyContract<WhereInput> {
  * Used within operations that retrieve lists of entities.
  */
 export interface PaginationContract {
-    /** Maximum number of records to return (e.g., page size). */
-    take: number;
-    /** Number of records to skip (e.g., for offset pagination). */
-    skip: number;
+	/** Maximum number of records to return (e.g., page size). */
+	take: number;
+	/** Number of records to skip (e.g., for offset pagination). */
+	skip: number;
 }
 
 /**
@@ -62,18 +62,18 @@ export interface PaginationContract {
  * @template EntityType The entity type whose fields are being selected.
  */
 export interface FieldSelectionResult<EntityType> {
-    /**
-     * A nested structure indicating which fields were requested.
-     * `true` indicates a scalar or enum field.
-     * A nested object indicates relation fields, recursively defining selections within the relation.
-     */
-    select: {
-        [K in keyof EntityType]?: EntityType[K] extends Array<infer U> ?
-            (U extends object ? FieldSelectionResult<U> : boolean) : // Handle arrays of objects vs arrays of scalars
-            EntityType[K] extends object ?
-                FieldSelectionResult<EntityType[K]> : // Handle nested objects
-                boolean; // Handle scalar fields
-    };
+	/**
+	 * A nested structure indicating which fields were requested.
+	 * `true` indicates a scalar or enum field.
+	 * A nested object indicates relation fields, recursively defining selections within the relation.
+	 */
+	select: {
+		[K in keyof EntityType]?: EntityType[K] extends Array<infer U> ?
+			(U extends object ? FieldSelectionResult<U> : boolean) : // Handle arrays of objects vs arrays of scalars
+			EntityType[K] extends object ?
+				FieldSelectionResult<EntityType[K]> : // Handle nested objects
+				boolean; // Handle scalar fields
+	};
 }
 
 /**
@@ -83,13 +83,13 @@ export interface FieldSelectionResult<EntityType> {
  * typically used to optimize database queries within a `DataProvider`.
  */
 export interface FieldSelectionProvider {
-    /**
-     * Parses the GraphQL resolver info to extract the requested fields.
-     * @param info The `GraphQLResolveInfo` object provided by the GraphQL execution engine.
-     * @returns A structured representation (`FieldSelectionResult`) of the selected fields.
-     * @template EntityType The entity type being queried.
-     */
-    parseSelection<EntityType>(info: GraphQLResolveInfo): FieldSelectionResult<EntityType>;
+	/**
+	 * Parses the GraphQL resolver info to extract the requested fields.
+	 * @param info The `GraphQLResolveInfo` object provided by the GraphQL execution engine.
+	 * @returns A structured representation (`FieldSelectionResult`) of the selected fields.
+	 * @template EntityType The entity type being queried.
+	 */
+	parseSelection<EntityType>(info: GraphQLResolveInfo): FieldSelectionResult<EntityType>;
 }
 
 /**
@@ -99,99 +99,102 @@ export interface FieldSelectionProvider {
  * data fetching and manipulation, often integrating authorization checks.
  */
 export interface DataProvider {
-    /**
-     * Finds a single entity matching the given criteria, respecting authorization rules.
-     * @param modelName The logical name or identifier of the data model/table.
-     * @param ability The authorization ability object for the current user/request context.
-     * @param where The filter criteria used to find the specific entity.
-     * @param select A structure indicating which fields of the entity should be returned.
-     * @returns A promise resolving to the found entity object or null if not found or not permitted.
-     * @template EntityType The type of the entity being queried.
-     * @template WhereInputType The type defining the filter criteria.
-     */
-    findOne<EntityType, WhereInputType>(modelName: string, ability: AppAbilityType, where: WhereInputType, select: Record<string, boolean>): Promise<EntityType | null>;
-
-    /**
-     * Finds multiple entities matching the given criteria, respecting authorization and pagination.
-     * @param modelName The logical name or identifier of the data model/table.
-     * @param ability The authorization ability object for the current user/request context.
-     * @param args An object containing filter criteria (`where`), optional pagination (`pagination`), and optional sorting (`orderBy`).
-     * @param select A structure indicating which fields should be returned for each entity.
-     * @returns A promise resolving to an array of found entities.
-     * @template EntityType The type of the entity being queried.
-     * @template WhereInputType The type defining the filter criteria.
-     */
-    findMany<EntityType, WhereInputType>(modelName: string, ability: AppAbilityType, args: {
-        where: WhereInputType;
-        pagination?: PaginationContract;
-        orderBy?: Record<string, 'asc' | 'desc'>;
-    }, select: Record<string, boolean>): Promise<EntityType[]>;
-
-    /**
-     * Creates a new entity with the given data. Authorization for creation might be handled
-     * separately or assumed before calling this method.
-     * @param modelName The logical name or identifier of the data model/table.
-     * @param data The data object for the new entity.
-     * @param select A structure indicating which fields of the newly created entity should be returned.
-     * @returns A promise resolving to the newly created entity object.
-     * @template EntityType The type of the entity being created.
-     * @template CreateInputType The type defining the input data for creation.
-     */
-    create<EntityType, CreateInputType>(modelName: string, data: CreateInputType, select: Record<string, boolean>): Promise<EntityType>;
-
-    /**
-     * Updates a single entity identified by its ID, respecting authorization rules.
-     * @param modelName The logical name or identifier of the data model/table.
-     * @param ability The authorization ability object for the current user/request context.
-     * @param data The data object containing the fields to update.
-     * @param whereId The unique identifier (usually ID) of the entity to update.
-     * @param select A structure indicating which fields of the updated entity should be returned.
-     * @returns A promise resolving to the updated entity object.
-     * @template EntityType The type of the entity being updated.
-     * @template UpdateInputType The type defining the input data for updates.
-     */
-    update<EntityType, UpdateInputType>(modelName: string, ability: AppAbilityType, data: UpdateInputType, whereId: string, select: Record<string, boolean>): Promise<EntityType>;
-
-    /**
-     * Updates multiple entities matching the given criteria, respecting authorization rules.
-     * Note: The capability to return the updated entities might depend on the underlying ORM.
-     * Implementations might need to pre-fetch IDs or re-fetch data if the ORM doesn't support returning updated records directly.
-     * @param modelName The logical name or identifier of the data model/table.
-     * @param ability The authorization ability object for the current user/request context.
-     * @param data The data object containing the fields to apply to the matched entities.
-     * @param where The filter criteria to identify the entities to update.
-     * @param select A structure indicating which fields should be returned (may require complex implementation).
-     * @returns A promise resolving to an array of updated entity objects (implementation might vary).
-     * @template EntityType The type of the entity being updated.
-     * @template UpdateInputType The type defining the input data for updates.
-     * @template WhereInputType The type defining the filter criteria.
-     */
-    updateMany<EntityType, UpdateInputType, WhereInputType>(modelName: string, ability: AppAbilityType, data: UpdateInputType, where: WhereInputType, select: Record<string, boolean>): Promise<EntityType[]>;
-
-    /**
-     * Deletes a single entity identified by its ID, respecting authorization rules.
-     * @param modelName The logical name or identifier of the data model/table.
-     * @param ability The authorization ability object for the current user/request context.
-     * @param whereId The unique identifier (usually ID) of the entity to delete.
-     * @param select A structure indicating which fields of the deleted entity should be returned.
-     * @returns A promise resolving to the deleted entity object.
-     * @template EntityType The type of the entity being deleted.
-     */
-    delete<EntityType>(modelName: string, ability: AppAbilityType, whereId: string, select: Record<string, boolean>): Promise<EntityType>;
-
-    /**
-     * Deletes multiple entities matching the given criteria, respecting authorization rules.
-     * Note: The capability to return the deleted entities might depend on the underlying ORM.
-     * Implementations might need to pre-fetch matching entities before deletion.
-     * @param modelName The logical name or identifier of the data model/table.
-     * @param ability The authorization ability object for the current user/request context.
-     * @param where The filter criteria to identify the entities to delete.
-     * @param select A structure indicating which fields should be returned (may require pre-fetching).
-     * @returns A promise resolving to an array of deleted entity objects (implementation might vary).
-     * @template EntityType The type of the entity being deleted.
-     * @template WhereInputType The type defining the filter criteria.
-     */
-    deleteMany<EntityType, WhereInputType>(modelName: string, ability: AppAbilityType, where: WhereInputType, select: Record<string, boolean>): Promise<EntityType[]>;
+	/**
+	 * Finds a single entity matching the given criteria, respecting authorization rules.
+	 * @param modelName The logical name or identifier of the data model/table.
+	 * @param ability The authorization ability object for the current user/request context.
+	 * @param where The filter criteria used to find the specific entity.
+	 * @param select A structure indicating which fields of the entity should be returned.
+	 * @returns A promise resolving to the found entity object or null if not found or not permitted.
+	 * @template EntityType The type of the entity being queried.
+	 * @template WhereInputType The type defining the filter criteria.
+	 */
+	findOne<EntityType, WhereInputType>(modelName: string, ability: AppAbilityType, where: WhereInputType, select: Record<string, boolean>): Promise<EntityType | null>;
+	
+	/**
+	 * Finds multiple entities matching the given criteria, respecting authorization and pagination.
+	 * Updated to support both simple pagination and advanced Prisma-style options.
+	 * @param modelName The logical name or identifier of the data model/table.
+	 * @param ability The authorization ability object for the current user/request context.
+	 * @param args An object containing filter criteria, pagination, and optional advanced options like orderBy, cursor, distinct.
+	 * @param select A structure indicating which fields should be returned for each entity.
+	 * @returns A promise resolving to an array of found entities.
+	 * @template EntityType The type of the entity being queried.
+	 * @template WhereInputType The type defining the filter criteria.
+	 */
+	findMany<EntityType, WhereInputType>(modelName: string, ability: AppAbilityType, args: {
+		where: WhereInputType;
+		pagination?: PaginationContract;
+		orderBy?: Record<string, 'asc' | 'desc'> | Array<Record<string, 'asc' | 'desc'>>;
+		cursor?: any;
+		distinct?: string[];
+	}, select: Record<string, boolean>): Promise<EntityType[]>;
+	
+	/**
+	 * Creates a new entity with the given data. Authorization for creation might be handled
+	 * separately or assumed before calling this method.
+	 * @param modelName The logical name or identifier of the data model/table.
+	 * @param data The data object for the new entity.
+	 * @param select A structure indicating which fields of the newly created entity should be returned.
+	 * @returns A promise resolving to the newly created entity object.
+	 * @template EntityType The type of the entity being created.
+	 * @template CreateInputType The type defining the input data for creation.
+	 */
+	create<EntityType, CreateInputType>(modelName: string, data: CreateInputType, select: Record<string, boolean>): Promise<EntityType>;
+	
+	/**
+	 * Updates a single entity identified by its ID, respecting authorization rules.
+	 * @param modelName The logical name or identifier of the data model/table.
+	 * @param ability The authorization ability object for the current user/request context.
+	 * @param data The data object containing the fields to update.
+	 * @param whereId The unique identifier (usually ID) of the entity to update.
+	 * @param select A structure indicating which fields of the updated entity should be returned.
+	 * @returns A promise resolving to the updated entity object.
+	 * @template EntityType The type of the entity being updated.
+	 * @template UpdateInputType The type defining the input data for updates.
+	 */
+	update<EntityType, UpdateInputType>(modelName: string, ability: AppAbilityType, data: UpdateInputType, whereId: string, select: Record<string, boolean>): Promise<EntityType>;
+	
+	/**
+	 * Updates multiple entities matching the given criteria, respecting authorization rules.
+	 * Note: The capability to return the updated entities might depend on the underlying ORM.
+	 * Implementations might need to pre-fetch IDs or re-fetch data if the ORM doesn't support returning updated records directly.
+	 * @param modelName The logical name or identifier of the data model/table.
+	 * @param ability The authorization ability object for the current user/request context.
+	 * @param data The data object containing the fields to apply to the matched entities.
+	 * @param where The filter criteria to identify the entities to update.
+	 * @param select A structure indicating which fields should be returned (may require complex implementation).
+	 * @returns A promise resolving to an array of updated entity objects (implementation might vary).
+	 * @template EntityType The type of the entity being updated.
+	 * @template UpdateInputType The type defining the input data for updates.
+	 * @template WhereInputType The type defining the filter criteria.
+	 */
+	updateMany<EntityType, UpdateInputType, WhereInputType>(modelName: string, ability: AppAbilityType, data: UpdateInputType, where: WhereInputType, select: Record<string, boolean>): Promise<EntityType[]>;
+	
+	/**
+	 * Deletes a single entity identified by its ID, respecting authorization rules.
+	 * @param modelName The logical name or identifier of the data model/table.
+	 * @param ability The authorization ability object for the current user/request context.
+	 * @param whereId The unique identifier (usually ID) of the entity to delete.
+	 * @param select A structure indicating which fields of the deleted entity should be returned.
+	 * @returns A promise resolving to the deleted entity object.
+	 * @template EntityType The type of the entity being deleted.
+	 */
+	delete<EntityType>(modelName: string, ability: AppAbilityType, whereId: string, select: Record<string, boolean>): Promise<EntityType>;
+	
+	/**
+	 * Deletes multiple entities matching the given criteria, respecting authorization rules.
+	 * Note: The capability to return the deleted entities might depend on the underlying ORM.
+	 * Implementations might need to pre-fetch matching entities before deletion.
+	 * @param modelName The logical name or identifier of the data model/table.
+	 * @param ability The authorization ability object for the current user/request context.
+	 * @param where The filter criteria to identify the entities to delete.
+	 * @param select A structure indicating which fields should be returned (may require pre-fetching).
+	 * @returns A promise resolving to an array of deleted entity objects (implementation might vary).
+	 * @template EntityType The type of the entity being deleted.
+	 * @template WhereInputType The type defining the filter criteria.
+	 */
+	deleteMany<EntityType, WhereInputType>(modelName: string, ability: AppAbilityType, where: WhereInputType, select: Record<string, boolean>): Promise<EntityType[]>;
 }
 
 /**
@@ -204,25 +207,25 @@ export interface DataProvider {
  * @template FilterType The type defining the filter criteria provided by the client when subscribing.
  */
 export interface SubscriptionResolver<EntityType, FilterType> {
-    /**
-     * Determines if a specific subscriber, based on their filter criteria,
-     * should receive the notification about the given changes.
-     * @param filter The filter criteria provided by the specific subscriber.
-     * @param changes An array of entities that have changed (created, updated, or deleted) and triggered the event.
-     * @returns `true` if the subscriber should receive the update based on their filter, `false` otherwise.
-     */
-    filter(filter: FilterType, changes: EntityType[]): boolean;
-
-    /**
-     * Processes or transforms the changed entities before sending them to the subscriber.
-     * This method is called only if `filter` returns `true`. It can be used to fetch additional data,
-     * shape the output according to the client's needs, or perform other transformations.
-     * @param filter The filter criteria provided by the specific subscriber.
-     * @param changes An array of entities that have changed and passed the `filter` check.
-     * @param select The selection criteria indicating which fields should be included in the response.
-     * @returns A promise resolving to the array of entities (potentially transformed) to be sent to the subscriber.
-     */
-    resolve(filter: FilterType, changes: EntityType[], select: any): Promise<EntityType[]>;
+	/**
+	 * Determines if a specific subscriber, based on their filter criteria,
+	 * should receive the notification about the given changes.
+	 * @param filter The filter criteria provided by the specific subscriber.
+	 * @param changes An array of entities that have changed (created, updated, or deleted) and triggered the event.
+	 * @returns `true` if the subscriber should receive the update based on their filter, `false` otherwise.
+	 */
+	filter(filter: FilterType, changes: EntityType[]): boolean;
+	
+	/**
+	 * Processes or transforms the changed entities before sending them to the subscriber.
+	 * This method is called only if `filter` returns `true`. It can be used to fetch additional data,
+	 * shape the output according to the client's needs, or perform other transformations.
+	 * @param filter The filter criteria provided by the specific subscriber.
+	 * @param changes An array of entities that have changed and passed the `filter` check.
+	 * @param select The selection criteria indicating which fields should be included in the response.
+	 * @returns A promise resolving to the array of entities (potentially transformed) to be sent to the subscriber.
+	 */
+	resolve(filter: FilterType, changes: EntityType[], select: any): Promise<EntityType[]>;
 }
 
 /**
@@ -241,18 +244,18 @@ export type Constructor<Class, Parameters extends any[] = any[]> = new (...args:
  * @template WhereInput Input type for filtering the related entities (e.g., `PostWhereInput`).
  */
 export interface OneToManyRelationResolverConfig<Target, WhereInput> {
-    /** The name of the field in the GraphQL schema representing this relation (e.g., "posts"). */
-    fieldName: string;
-    /** The logical name or identifier of the related model (e.g., Prisma model name "post"). */
-    targetModel: string;
-    /** Optional input type class used for filtering related entities in the GraphQL query. */
-    targetWhereInput?: Type<WhereInput>;
-    /** The class representing the related entity type (e.g., `Post`). */
-    targetType: Type<Target>;
-    /** Whether the filter argument (`targetWhereInput`) is nullable in the GraphQL schema. */
-    whereNullable: boolean;
-    /** The name of the field on the related entity (`Target`) that holds the foreign key referencing the parent entity's ID (e.g., "userId" on the `Post` entity). */
-    relationField: keyof Target & string;
+	/** The name of the field in the GraphQL schema representing this relation (e.g., "posts"). */
+	fieldName: string;
+	/** The logical name or identifier of the related model (e.g., Prisma model name "post"). */
+	targetModel: string;
+	/** Optional input type class used for filtering related entities in the GraphQL query. */
+	targetWhereInput?: Type<WhereInput>;
+	/** The class representing the related entity type (e.g., `Post`). */
+	targetType: Type<Target>;
+	/** Whether the filter argument (`targetWhereInput`) is nullable in the GraphQL schema. */
+	whereNullable: boolean;
+	/** The name of the field on the related entity (`Target`) that holds the foreign key referencing the parent entity's ID (e.g., "userId" on the `Post` entity). */
+	relationField: keyof Target & string;
 }
 
 /**
@@ -263,16 +266,16 @@ export interface OneToManyRelationResolverConfig<Target, WhereInput> {
  * @template Target The related entity type
  */
 export interface OneToOneRelationResolverConfig<Item, Target> {
-    /** The name of the field in the GraphQL schema */
-    fieldName: string;
-    /** The name of the target model */
-    targetModel: string;
-    /** The class representing the target entity */
-    targetType: Type<Target>;
-    /** The name of the field on the parent entity that holds the foreign key */
-    relationField: keyof Item;
-    /** Whether the relation field is nullable */
-    nullable?: boolean;
+	/** The name of the field in the GraphQL schema */
+	fieldName: string;
+	/** The name of the target model */
+	targetModel: string;
+	/** The class representing the target entity */
+	targetType: Type<Target>;
+	/** The name of the field on the parent entity that holds the foreign key */
+	relationField: keyof Item;
+	/** Whether the relation field is nullable */
+	nullable?: boolean;
 }
 
 /**
@@ -285,82 +288,98 @@ export interface OneToOneRelationResolverConfig<Item, Target> {
  * @template WhereInput The input type for query filters
  */
 export declare class BaseCrudModuleConfig<
-    Item,
+	Item,
 > {
-    /**
-     * Adds a one-to-many relation resolver to the module.
-     *
-     * @template Target The related entity type
-     * @template TargetWhereInput The input type for filtering related entities
-     * @param config Configuration for the one-to-many relation resolver
-     * @returns The configuration builder for chaining
-     */
-    addRelation<Target, TargetWhereInput>(
-        config: OneToManyRelationResolverConfig<Target, TargetWhereInput>
-    ): this;
-
-    /**
-     * Adds a one-to-one relation resolver to the module.
-     *
-     * @template Target The related entity type
-     * @param config Configuration for the one-to-one relation resolver
-     * @returns The configuration builder for chaining
-     */
-    addOneToOneRelation<Target>(
-        config: OneToOneRelationResolverConfig<Item, Target>
-    ): this;
-
-    /**
-     * Adds a custom subscription resolver to the module.
-     *
-     * @template FilterType The filter type for subscriptions
-     * @param config Configuration for the subscription resolver
-     * @returns The configuration builder for chaining
-     */
-    withSubscription<FilterType>(config: {
-        filter: Type<FilterType>;
-        resolver: Type<SubscriptionResolver<Item, FilterType>>;
-    }): this;
-
-    /**
-     * Adds custom providers to the module.
-     *
-     * @param providers The provider classes to add
-     * @returns The configuration builder for chaining
-     */
-    withProviders(...providers: Type[]): this;
-
-    /**
-     * Adds custom controllers to the module.
-     *
-     * @param controllers The controller classes to add
-     * @returns The configuration builder for chaining
-     */
-    withControllers(...controllers: Type[]): this;
-
-    /**
-     * Adds custom authorizers to the module
-     *
-     * @param {...Type<WillAuthorize>[]} authorizer - The authorizer classes to add
-     * @returns {this} The configuration builder (for method chaining)
-     */
-    withAuthorization(...authorizer: Type<WillAuthorize>[]): this;
-
-    /**
-     * Adds imports to the module.
-     *
-     * @param imports The modules to import
-     * @returns The configuration builder for chaining
-     */
-    import(...imports: (Type | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this;
-
-    /**
-     * Adds exports to the module.
-     *
-     * @param exports The providers or modules to export
-     * @returns The configuration builder for chaining
-     */
-    export(...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this;
+	/**
+	 * Adds a one-to-many relation resolver to the module.
+	 *
+	 * @template Target The related entity type
+	 * @template TargetWhereInput The input type for filtering related entities
+	 * @param config Configuration for the one-to-many relation resolver
+	 * @returns The configuration builder for chaining
+	 */
+	addRelation<Target, TargetWhereInput>(
+		config: OneToManyRelationResolverConfig<Target, TargetWhereInput>
+	): this;
+	
+	/**
+	 * Adds a one-to-one relation resolver to the module.
+	 *
+	 * @template Target The related entity type
+	 * @param config Configuration for the one-to-one relation resolver
+	 * @returns The configuration builder for chaining
+	 */
+	addOneToOneRelation<Target>(
+		config: OneToOneRelationResolverConfig<Item, Target>
+	): this;
+	
+	/**
+	 * Adds a custom subscription resolver to the module.
+	 *
+	 * @template FilterType The filter type for subscriptions
+	 * @param config Configuration for the subscription resolver
+	 * @returns The configuration builder for chaining
+	 */
+	withSubscription<FilterType>(config: {
+		filter: Type<FilterType>;
+		resolver: Type<SubscriptionResolver<Item, FilterType>>;
+	}): this;
+	
+	/**
+	 * Adds custom providers to the module.
+	 *
+	 * @param providers The provider classes to add
+	 * @returns The configuration builder for chaining
+	 */
+	withProviders(...providers: Type[]): this;
+	
+	/**
+	 * Adds custom controllers to the module.
+	 *
+	 * @param controllers The controller classes to add
+	 * @returns The configuration builder for chaining
+	 */
+	withControllers(...controllers: Type[]): this;
+	
+	/**
+	 * Adds custom authorizers to the module
+	 *
+	 * @param {...Type<WillAuthorize>[]} authorizer - The authorizer classes to add
+	 * @returns {this} The configuration builder (for method chaining)
+	 */
+	withAuthorization(...authorizer: Type<WillAuthorize>[]): this;
+	
+	/**
+	 * Adds imports to the module.
+	 *
+	 * @param imports The modules to import
+	 * @returns The configuration builder for chaining
+	 */
+	import(...imports: (Type | DynamicModule | Promise<DynamicModule> | ForwardReference)[]): this;
+	
+	/**
+	 * Adds exports to the module.
+	 *
+	 * @param exports The providers or modules to export
+	 * @returns The configuration builder for chaining
+	 */
+	export(...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this;
+	
+	/**
+	 * Sets a custom FindMany args type (e.g., from prisma-nest-graphql).
+	 * This replaces the default take/skip pagination with full Prisma-style args including
+	 * cursor, orderBy, distinct, etc.
+	 *
+	 * @template FindManyArgs The type of the custom find many args
+	 * @param findManyArgsType The custom FindMany args class
+	 * @returns The configuration builder for chaining
+	 * @example
+	 * ```typescript
+	 * // Using prisma-nest-graphql generated FindManyArgs
+	 * .withFindManyArgs(FindManyUserArgs)
+	 * ```
+	 */
+	withFindManyArgs<FindManyArgs>(findManyArgsType: Type<FindManyArgs>): this;
 }
 
 /**
@@ -374,23 +393,23 @@ export declare class BaseCrudModuleConfig<
  * @template WhereInput The input type for query filters
  */
 export declare class CrudModuleConfig<
-    Item,
-    CreateInput,
-    UpdateInput,
-    UpdateManyInput,
-    WhereInput
+	Item,
+	CreateInput,
+	UpdateInput,
+	UpdateManyInput,
+	WhereInput
 > extends BaseCrudModuleConfig<Item> {
-    /**
-     * Registers a custom resolver class for this entity.
-     * This method changes the configuration API to allow adding specific resolver types.
-     *
-     * @template TResolver The type of the resolver class
-     * @param resolverClass The resolver class that implements custom resolvers
-     * @returns A CustomResolverConfig instance for chaining specialized resolver methods
-     */
-    withCustomResolver<TResolver extends object>(
-        resolverClass: Type<TResolver>
-    ): CustomResolverConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput, TResolver>;
+	/**
+	 * Registers a custom resolver class for this entity.
+	 * This method changes the configuration API to allow adding specific resolver types.
+	 *
+	 * @template TResolver The type of the resolver class
+	 * @param resolverClass The resolver class that implements custom resolvers
+	 * @returns A CustomResolverConfig instance for chaining specialized resolver methods
+	 */
+	withCustomResolver<TResolver extends object>(
+		resolverClass: Type<TResolver>
+	): CustomResolverConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput, TResolver>;
 }
 
 /**
@@ -405,93 +424,93 @@ export declare class CrudModuleConfig<
  * @template TResolver The type of the resolver class
  */
 export declare class CustomResolverConfig<
-    Item,
-    CreateInput,
-    UpdateInput,
-    UpdateManyInput,
-    WhereInput,
-    TResolver extends object
+	Item,
+	CreateInput,
+	UpdateInput,
+	UpdateManyInput,
+	WhereInput,
+	TResolver extends object
 > extends BaseCrudModuleConfig<Item> {
-    /**
-     * Add a custom query to the GraphQL schema.
-     * Maps a method on the resolver class to a GraphQL query.
-     *
-     * @template M Method name in the resolver class
-     * @param config Configuration for the query
-     * @returns The configuration builder for chaining
-     */
-    addQuery<
-        M extends keyof TResolver,
-        // Ensure M is a method that returns a Promise
-        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
-    >(
-        config: {
-            name: string;
-            description?: string;
-            inputType: Type<ParametersOfMethod<TResolver, M>>;
-            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
-            nullable?: boolean;
-            methodName: M & string;
-            permissions: Permission[];
-        }
-    ): this;
-
-    /**
-     * Add a custom mutation to the GraphQL schema.
-     * Maps a method on the resolver class to a GraphQL mutation.
-     *
-     * @template M Method name in the resolver class
-     * @param config Configuration for the mutation
-     * @returns The configuration builder for chaining
-     */
-    addMutation<
-        M extends keyof TResolver,
-        // Ensure M is a method that returns a Promise
-        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
-    >(
-        config: {
-            name: string;
-            description?: string;
-            inputType: Type<ParametersOfMethod<TResolver, M>>;
-            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
-            nullable?: boolean;
-            methodName: M & string;
-            permissions: Permission[];
-        }
-    ): this;
-
-    /**
-     * Add a field resolver to a type in the GraphQL schema.
-     * Maps a method on the resolver class to a GraphQL field resolver.
-     *
-     * @template M Method name in the resolver class
-     * @param config Configuration for the field resolver
-     * @returns The configuration builder for chaining
-     */
-    addResolveField<
-        M extends keyof TResolver,
-        // Ensure M is a method that returns a Promise
-        _ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
-    >(
-        config: {
-            name: string;
-            description?: string;
-            inputType: Type<ParametersOfResolveMethod<Item, TResolver, M>>;
-            outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
-            nullable?: boolean;
-            methodName: M & string;
-            permissions: Permission[];
-            resolveField: string;
-        }
-    ): this;
-
-    /**
-     * Go back to the main config builder.
-     * Provides a way to return to the main CrudModuleConfig after adding custom resolvers.
-     *
-     * @returns The main CrudModuleConfig instance
-     */
-    and(): CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>;
+	/**
+	 * Add a custom query to the GraphQL schema.
+	 * Maps a method on the resolver class to a GraphQL query.
+	 *
+	 * @template M Method name in the resolver class
+	 * @param config Configuration for the query
+	 * @returns The configuration builder for chaining
+	 */
+	addQuery<
+		M extends keyof TResolver,
+		// Ensure M is a method that returns a Promise
+		_ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+	>(
+		config: {
+			name: string;
+			description?: string;
+			inputType: Type<ParametersOfMethod<TResolver, M>>;
+			outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+			nullable?: boolean;
+			methodName: M & string;
+			permissions: Permission[];
+		}
+	): this;
+	
+	/**
+	 * Add a custom mutation to the GraphQL schema.
+	 * Maps a method on the resolver class to a GraphQL mutation.
+	 *
+	 * @template M Method name in the resolver class
+	 * @param config Configuration for the mutation
+	 * @returns The configuration builder for chaining
+	 */
+	addMutation<
+		M extends keyof TResolver,
+		// Ensure M is a method that returns a Promise
+		_ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+	>(
+		config: {
+			name: string;
+			description?: string;
+			inputType: Type<ParametersOfMethod<TResolver, M>>;
+			outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+			nullable?: boolean;
+			methodName: M & string;
+			permissions: Permission[];
+		}
+	): this;
+	
+	/**
+	 * Add a field resolver to a type in the GraphQL schema.
+	 * Maps a method on the resolver class to a GraphQL field resolver.
+	 *
+	 * @template M Method name in the resolver class
+	 * @param config Configuration for the field resolver
+	 * @returns The configuration builder for chaining
+	 */
+	addResolveField<
+		M extends keyof TResolver,
+		// Ensure M is a method that returns a Promise
+		_ extends TResolver[M] extends (...args: any[]) => Promise<any> ? true : never
+	>(
+		config: {
+			name: string;
+			description?: string;
+			inputType: Type<ParametersOfResolveMethod<Item, TResolver, M>>;
+			outputType: Getter<Type<Awaited<ReturnTypeOfMethod<TResolver, M>>>>;
+			nullable?: boolean;
+			methodName: M & string;
+			permissions: Permission[];
+			resolveField: string;
+		}
+	): this;
+	
+	/**
+	 * Go back to the main config builder.
+	 * Provides a way to return to the main CrudModuleConfig after adding custom resolvers.
+	 *
+	 * @returns The main CrudModuleConfig instance
+	 */
+	and(): CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>;
 }
 
 /**
@@ -518,6 +537,8 @@ export declare class CustomResolverConfig<
  *           updateManyInput: UserUpdateManyInput,
  *           whereInput: UserWhereInput,
  *         })
+ *         // Use custom FindMany args from prisma-nest-graphql
+ *         .withFindManyArgs(FindManyUserArgs)
  *         // Add one-to-many relation
  *         .addRelation<Post, PostWhereInput>({
  *           fieldName: 'posts',
@@ -551,50 +572,50 @@ export declare class CustomResolverConfig<
  * ```
  */
 export declare class CrudModulesFactory {
-    /**
-     * Starts the configuration process for a specific entity type.
-     * Call this first for each entity you want to manage.
-     * @param entity The class representing the entity type (e.g., `User`).
-     * @returns An object with the `withConfig` method to provide core CRUD configuration.
-     * @template Item The entity type.
-     */
-    static forEntity<Item>(entity: Type<Item>): {
-        /**
-         * Provides the basic configuration necessary for generating CRUD operations
-         * (queries, mutations) for the specified entity.
-         * @param config An object containing the logical model name (e.g., Prisma model name)
-         * and the classes representing the GraphQL input types for create, update, updateMany, and where operations.
-         * @returns A `CrudModuleConfig` instance allowing further configuration chaining (e.g., adding relations).
-         */
-        withConfig<CreateInput, UpdateInput, UpdateManyInput, WhereInput>(config: {
-            modelName: string;
-            createInput: Type<CreateInput>;
-            updateInput: Type<UpdateInput>;
-            updateManyInput: Type<UpdateManyInput>;
-            whereInput: Type<WhereInput>;
-        }): CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>;
-    };
-
-    /**
-     * Specifies the global `DataProvider` and `FieldSelectionProvider` implementations
-     * that will be used by all generated CRUD modules. These providers handle the actual
-     * database interaction and field selection logic.
-     * @param dataProvider The class implementing the `DataProvider` interface.
-     * @param fieldSelectionProvider The class implementing the `FieldSelectionProvider` interface.
-     * @returns An object with the `forRoot` method to finalize module creation.
-     */
-    static using(dataProvider: Type<DataProvider>, fieldSelectionProvider: Type<FieldSelectionProvider>): {
-        /**
-         * Creates the dynamic NestJS module containing all configured CRUD modules,
-         * relation resolvers, subscription handlers, and the specified global providers.
-         * This resulting module should be included in the `imports` array of your root AppModule
-         * or a relevant feature module.
-         * @param configBuilders An array of `CrudModuleConfig` instances, each fully configured
-         * using the `forEntity(...).withConfig(...).addRelation(...)` chain.
-         * @returns The configured `DynamicModule` ready to be imported by NestJS.
-         */
-        forRoot(configBuilders: BaseCrudModuleConfig<any>[]): DynamicModule;
-    };
+	/**
+	 * Starts the configuration process for a specific entity type.
+	 * Call this first for each entity you want to manage.
+	 * @param entity The class representing the entity type (e.g., `User`).
+	 * @returns An object with the `withConfig` method to provide core CRUD configuration.
+	 * @template Item The entity type.
+	 */
+	static forEntity<Item>(entity: Type<Item>): {
+		/**
+		 * Provides the basic configuration necessary for generating CRUD operations
+		 * (queries, mutations) for the specified entity.
+		 * @param config An object containing the logical model name (e.g., Prisma model name)
+		 * and the classes representing the GraphQL input types for create, update, updateMany, and where operations.
+		 * @returns A `CrudModuleConfig` instance allowing further configuration chaining (e.g., adding relations).
+		 */
+		withConfig<CreateInput, UpdateInput, UpdateManyInput, WhereInput>(config: {
+			modelName: string;
+			createInput: Type<CreateInput>;
+			updateInput: Type<UpdateInput>;
+			updateManyInput: Type<UpdateManyInput>;
+			whereInput: Type<WhereInput>;
+		}): CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>;
+	};
+	
+	/**
+	 * Specifies the global `DataProvider` and `FieldSelectionProvider` implementations
+	 * that will be used by all generated CRUD modules. These providers handle the actual
+	 * database interaction and field selection logic.
+	 * @param dataProvider The class implementing the `DataProvider` interface.
+	 * @param fieldSelectionProvider The class implementing the `FieldSelectionProvider` interface.
+	 * @returns An object with the `forRoot` method to finalize module creation.
+	 */
+	static using(dataProvider: Type<DataProvider>, fieldSelectionProvider: Type<FieldSelectionProvider>): {
+		/**
+		 * Creates the dynamic NestJS module containing all configured CRUD modules,
+		 * relation resolvers, subscription handlers, and the specified global providers.
+		 * This resulting module should be included in the `imports` array of your root AppModule
+		 * or a relevant feature module.
+		 * @param configBuilders An array of `CrudModuleConfig` instances, each fully configured
+		 * using the `forEntity(...).withConfig(...).addRelation(...)` chain.
+		 * @returns The configured `DynamicModule` ready to be imported by NestJS.
+		 */
+		forRoot(configBuilders: BaseCrudModuleConfig<any>[]): DynamicModule;
+	};
 }
 
 /**
@@ -603,13 +624,13 @@ export declare class CrudModulesFactory {
  * Prisma-compatible `select` object. Useful when using Prisma as the backend.
  */
 export declare class PrismaFieldSelectionProvider implements FieldSelectionProvider {
-    /**
-     * Parses GraphQL info using `@paljs/plugins` PrismaSelect.
-     * @param info The `GraphQLResolveInfo` object provided by the GraphQL execution engine.
-     * @returns A Prisma-compatible `select` object structure usable in `prismaClient.model.find*` calls.
-     * @template EntityType The entity type being queried.
-     */
-    parseSelection<EntityType>(info: GraphQLResolveInfo): FieldSelectionResult<EntityType>;
+	/**
+	 * Parses GraphQL info using `@paljs/plugins` PrismaSelect.
+	 * @param info The `GraphQLResolveInfo` object provided by the GraphQL execution engine.
+	 * @returns A Prisma-compatible `select` object structure usable in `prismaClient.model.find*` calls.
+	 * @template EntityType The entity type being queried.
+	 */
+	parseSelection<EntityType>(info: GraphQLResolveInfo): FieldSelectionResult<EntityType>;
 }
 
 /**
