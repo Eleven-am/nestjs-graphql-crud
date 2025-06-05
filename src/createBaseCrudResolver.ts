@@ -129,7 +129,7 @@ export function createBaseCrudResolver<
 		async findMany(
 			@Info() info: GraphQLResolveInfo,
 			@CurrentAbility.HTTP() ability: AppAbilityType,
-			@Args({ type: () => FindManyContract }) args?: any,
+			@Args('where', { type: () => FindManyContract }) args?: any,
 		): Promise<Item[]> {
 			const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
 			return this.service.findMany(ability, args || {}, select);
