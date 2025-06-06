@@ -47,7 +47,6 @@ export class CrudModulesFactory {
             }): CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput> {
                 return new CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>({
                     ...config,
-	                findManyArgs: createFindMany(config.whereInput, config.modelName),
 	                entity,
                 });
             }

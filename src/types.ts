@@ -364,22 +364,6 @@ export declare class BaseCrudModuleConfig<
 	 * @returns The configuration builder for chaining
 	 */
 	export(...exports: (DynamicModule | string | symbol | Provider | ForwardReference | Abstract<any> | Function)[]): this;
-	
-	/**
-	 * Sets a custom FindMany args type (e.g., from prisma-nest-graphql).
-	 * This replaces the default take/skip pagination with full Prisma-style args including
-	 * cursor, orderBy, distinct, etc.
-	 *
-	 * @template FindManyArgs The type of the custom find many args
-	 * @param findManyArgsType The custom FindMany args class
-	 * @returns The configuration builder for chaining
-	 * @example
-	 * ```typescript
-	 * // Using prisma-nest-graphql generated FindManyArgs
-	 * .withFindManyArgs(FindManyUserArgs)
-	 * ```
-	 */
-	withFindManyArgs<FindManyArgs>(findManyArgsType: Type<FindManyArgs>): this;
 }
 
 /**

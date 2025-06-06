@@ -212,19 +212,6 @@ export class CrudModuleConfig<
 	WhereInput
 > {
 	/**
-	 * Sets a custom FindMany args type (e.g., from prisma-nest-graphql)
-	 * This replaces the default take/skip pagination with full Prisma-style args
-	 *
-	 * @template FindManyArgs - The type of the custom find many args
-	 * @param {Type<FindManyArgs>} findManyArgsType - The custom FindMany args class
-	 * @returns {this} The configuration builder (for method chaining)
-	 */
-	withFindManyArgs<FindManyArgs>(findManyArgsType: Type<FindManyArgs>): this {
-		this.options.findManyArgs = findManyArgsType;
-		return this;
-	}
-	
-	/**
 	 * Registers a custom resolver class for this entity
 	 *
 	 * @template TResolver The type of the resolver class
@@ -284,19 +271,6 @@ export class CustomResolverConfig<
 	UpdateManyInput,
 	WhereInput
 > {
-	/**
-	 * Sets a custom FindMany args type (e.g., from prisma-nest-graphql)
-	 * This replaces the default take/skip pagination with full Prisma-style args
-	 *
-	 * @template FindManyArgs - The type of the custom find many args
-	 * @param {Type<FindManyArgs>} findManyArgsType - The custom FindMany args class
-	 * @returns {this} The configuration builder (for method chaining)
-	 */
-	withFindManyArgs<FindManyArgs>(findManyArgsType: Type<FindManyArgs>): this {
-		this.options.findManyArgs = findManyArgsType;
-		return this;
-	}
-	
 	/**
 	 * Add a custom query to the GraphQL schema
 	 *

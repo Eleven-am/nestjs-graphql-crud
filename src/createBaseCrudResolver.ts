@@ -13,9 +13,10 @@ import {
 import { Args, Mutation, Query, Resolver, Subscription, Info } from "@nestjs/graphql";
 import { PubSub } from "graphql-subscriptions";
 import { Inject, Type } from "@nestjs/common";
-import { CurrentPubSub, firstLetterUppercase } from "./decorators";
+import {createFindMany, CurrentPubSub, firstLetterUppercase} from "./decorators";
 import { Action, AppAbilityType, CanPerform, CurrentAbility } from "@eleven-am/authorizer";
 import { GraphQLResolveInfo } from "graphql";
+import 'reflect-metadata';
 
 /**
  * Creates a GraphQL resolver class with standard CRUD operations for a specific entity
@@ -124,7 +125,10 @@ export function createBaseCrudResolver<
 		async findMany(
 			@Info() info: GraphQLResolveInfo,
 			@CurrentAbility.HTTP() ability: AppAbilityType,
-			@Args('filter', {type: () => options.findManyArgs, nullable: true}) where?: FindManyContract<WhereInput>,
+			@Args('filter', {
+				type: () => createFindMany(options.whereInput, options.modelName),
+				nullable: true
+			}) where?: FindManyContract<WhereInput>,
 		): Promise<Item[]> {
 			const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
 			return this.service.findMany(ability, where || {}, select);
