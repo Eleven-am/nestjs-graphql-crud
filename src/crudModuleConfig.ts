@@ -134,6 +134,19 @@ export class BaseCrudModuleConfig<
 	}
 	
 	/**
+	 * Sets a custom FindMany args type (e.g., from prisma-nest-graphql)
+	 * This replaces the default take/skip pagination with full Prisma-style args
+	 *
+	 * @template FindManyArgs - The type of the custom find many args
+	 * @param {Type<FindManyArgs>} findManyArgsType - The custom FindMany args class
+	 * @returns {this} The configuration builder (for method chaining)
+	 */
+	withFindManyArgs<FindManyArgs>(findManyArgsType: Type<FindManyArgs>): this {
+		this.options.findManyArgs = findManyArgsType;
+		return this;
+	}
+	
+	/**
 	 * Adds custom controllers to the module
 	 *
 	 * @param {...Type[]} controllers - The controller classes to add
