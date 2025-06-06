@@ -13,7 +13,7 @@ import {
 import { Args, Mutation, Query, Resolver, Subscription, Info } from "@nestjs/graphql";
 import { PubSub } from "graphql-subscriptions";
 import { Inject, Type } from "@nestjs/common";
-import { createFindMany, CurrentPubSub, firstLetterUppercase } from "./decorators";
+import { CurrentPubSub, firstLetterUppercase } from "./decorators";
 import { Action, AppAbilityType, CanPerform, CurrentAbility } from "@eleven-am/authorizer";
 import { GraphQLResolveInfo } from "graphql";
 
@@ -110,7 +110,7 @@ export function createBaseCrudResolver<
 		 *
 		 * @param {any} ability - The user's ability for authorization
 		 * @param {GraphQLResolveInfo} info - GraphQL resolve info for field selection
-		 * @param {any} args - Filter and pagination criteria (can be custom FindManyArgs or default FindManyContract)
+		 * @param {FindManyContract<WhereInput>} where - Filter and pagination criteria
 		 * @returns {Promise<Item[]>} Array of matched entities
 		 */
 		@Query(() => [options.entity], {
@@ -124,12 +124,10 @@ export function createBaseCrudResolver<
 		async findMany(
 			@Info() info: GraphQLResolveInfo,
 			@CurrentAbility.HTTP() ability: AppAbilityType,
-			@Args('args', { type: () => options.findManyArgs
-					? options.findManyArgs
-					: createFindMany(options.whereInput, options.modelName) }) args?: any,
+			@Args('filter', {type: () => options.findManyArgs, nullable: true}) where?: FindManyContract<WhereInput>,
 		): Promise<Item[]> {
 			const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
-			return this.service.findMany(ability, args || {}, select);
+			return this.service.findMany(ability, where || {}, select);
 		}
 		
 		/**

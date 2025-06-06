@@ -9,6 +9,7 @@ import { DynamicModule, Provider, Type } from "@nestjs/common";
 import { CrudModuleConfig } from "./crudModuleConfig";
 import { DataProvider, FieldSelectionProvider } from "./internalTypes";
 import { PUB_SUB_SYMBOL } from "./decorators";
+import {createFindMany} from "./types";
 
 /**
  * Factory class for creating and registering CRUD modules
@@ -47,7 +48,8 @@ export class CrudModulesFactory {
             }): CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput> {
                 return new CrudModuleConfig<Item, CreateInput, UpdateInput, UpdateManyInput, WhereInput>({
                     ...config,
-                    entity,
+	                findManyArgs: createFindMany(config.whereInput, config.modelName),
+	                entity,
                 });
             }
         };

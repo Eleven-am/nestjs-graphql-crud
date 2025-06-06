@@ -16,6 +16,7 @@ import {
 import {DynamicModule, ForwardReference, Provider, Type} from "@nestjs/common";
 import {Permission, WillAuthorize} from "@eleven-am/authorizer";
 import {Abstract} from "@nestjs/common/interfaces/abstract.interface";
+import {createFindMany} from "./decorators";
 
 /**
  * Base Configuration builder for CRUD modules with a fluent API
@@ -47,7 +48,7 @@ export class BaseCrudModuleConfig<
 			WhereInput
 		>
 	) {
-		// Initialize resolvers structure if not exists
+		// Initialize resolver structure if not exists
 		if (!this.options.resolvers) {
 			this.options.resolvers = {
 				relationResolvers: []

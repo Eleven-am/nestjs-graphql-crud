@@ -271,7 +271,7 @@ export interface CreateBaseCrudResolverOptions<
 	/** Input type for query filters */
 	whereInput: Type<WhereInput>;
 	/** Optional custom FindMany args type (e.g., from prisma-nest-graphql) */
-	findManyArgs?: Type<any>;
+	findManyArgs: Type<any>;
 }
 
 /**
