@@ -8,8 +8,7 @@ import { PubSub } from "graphql-subscriptions";
 import { DynamicModule, Provider, Type } from "@nestjs/common";
 import { CrudModuleConfig } from "./crudModuleConfig";
 import { DataProvider, FieldSelectionProvider } from "./internalTypes";
-import { PUB_SUB_SYMBOL } from "./decorators";
-import {createFindMany} from "./types";
+import { PUB_SUB_SYMBOL, createFindMany } from "./decorators";
 
 /**
  * Factory class for creating and registering CRUD modules

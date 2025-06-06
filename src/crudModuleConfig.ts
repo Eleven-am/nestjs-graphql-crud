@@ -16,7 +16,6 @@ import {
 import {DynamicModule, ForwardReference, Provider, Type} from "@nestjs/common";
 import {Permission, WillAuthorize} from "@eleven-am/authorizer";
 import {Abstract} from "@nestjs/common/interfaces/abstract.interface";
-import {createFindMany} from "./decorators";
 
 /**
  * Base Configuration builder for CRUD modules with a fluent API
