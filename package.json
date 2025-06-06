@@ -1,6 +1,6 @@
 {
   "name": "@eleven-am/nestjs-graphql-crud",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "description": "nestjs-graphql-crud is a library that aims to reduce the boilerplate code needed to create a GraphQL CRUD API.",
   "scripts": {
     "build": "rimraf dist && tsc",
