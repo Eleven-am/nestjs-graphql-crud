@@ -55,11 +55,6 @@ export function createBaseCrudResolver<
 ): Type<IResolver<any, any, any, any, any, any, any, any>> {
 	const ModelName = firstLetterUppercase(options.modelName);
 	
-	// Use custom findManyArgs if provided, otherwise create default
-	const FindManyContract = options.findManyArgs
-		? options.findManyArgs
-		: createFindMany(options.whereInput, options.modelName);
-	
 	@Resolver(() => options.entity)
 	class BaseCrudResolver<
 		Item,
@@ -129,7 +124,9 @@ export function createBaseCrudResolver<
 		async findMany(
 			@Info() info: GraphQLResolveInfo,
 			@CurrentAbility.HTTP() ability: AppAbilityType,
-			@Args('args', { type: () => FindManyContract }) args?: any,
+			@Args('args', { type: () => options.findManyArgs
+					? options.findManyArgs
+					: createFindMany(options.whereInput, options.modelName) }) args?: any,
 		): Promise<Item[]> {
 			const select = this.service.fieldSelectionProvider.parseSelection<Item>(info);
 			return this.service.findMany(ability, args || {}, select);
